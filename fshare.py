@@ -3,6 +3,7 @@ from aiohttp import ClientSession
 import requests
 import codecs
 import json
+import os
 class fshare:
 	def __init__(self, email, password):
 		self.email = email
@@ -39,11 +40,8 @@ class fshare:
 		loop = asyncio.get_event_loop()
 		loop.run_until_complete(self.request_file(url))
 	def infos(self, filename):
-		try:
-			loop = asyncio.get_event_loop()
-			loop.run_until_complete(self.info_from_file(filename))
-		except FileNotFoundError:
-			print("There's no " + filename + ".txt in your desktop.")
+		loop = asyncio.get_event_loop()
+		loop.run_until_complete(self.info_from_file(filename))
 	def download(self, url):
 		payload_token = {
 			'token': self.token,
@@ -149,20 +147,22 @@ class fshare:
 			try:
 				data = await response.json(content_type=None)
 				self.items.update(data['items'])
-				if self.items['type'] == 0:
-					print(self.items['name'] + '\t' + 'https://www.fshare.vn/folder/' + self.items['linkcode'] + '\n')
-				if self.items['type'] == 1:
-					print(item['name'] + '\t' + 'https://www.fshare.vn/file/' + self.items['linkcode'] + '\t\t' + '{:0.3f}'.format(self.items['size'] / 1073741824) + '\n')
 				self.items.update(data['current'])
-				print(self.items)
+				if self.items['type'] == 0:
+					print(self.items['name'] + '   ' + 'https://www.fshare.vn/folder/' + self.items['linkcode'])
+				if self.items['type'] == 1:
+					print(item['name'] + '   ' + 'https://www.fshare.vn/file/' + self.items['linkcode'] + '   ' + '{:0.3f}'.format(self.items['size'] / 1073741824))
 			except(json.JSONDecodeError, KeyError):
 				try:
 					self.items.update(data['current'])
-					print(self.items)
+					if self.items['type'] == 0:
+						print(self.items['name'] + '   ' + 'https://www.fshare.vn/folder/' + self.items['linkcode'])
+					if self.items['type'] == 1:
+						print(item['name'] + '   ' + 'https://www.fshare.vn/file/' + self.items['linkcode'] + '   ' + '{:0.3f}'.format(self.items['size'] / 1073741824))
 				except(UnboundLocalError, KeyError):
 					print("File Not Found")
 	async def request_info_from_file(self, session, filename, linkcode, page=None):
-		txt = codecs.open('desktop/'+ filename + '_info.txt', 'a', 'utf-8')
+		txt = codecs.open(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop') + '\\' + filename + '_info.txt', 'a', 'utf-8')
 		if page:
 			async with session.get('https://www.fshare.vn/api/v3/files/folder?linkcode=' + linkcode + '&sort=type%2Cname&page=' + str(page) + '&per-page=50') as response:
 				try:
@@ -206,6 +206,28 @@ class fshare:
 					except(UnboundLocalError, KeyError):
 						txt.write("File Not Found" + '\n')
 		txt.close()
+	async def request_info_massive_folder(self, session, url, page):
+		linkcode = url[-12:]
+		async with session.get('https://www.fshare.vn/api/v3/files/folder?linkcode=' + linkcode + '&sort=type%2Cname&page=' + str(page) + '&per-page=50') as response:
+			try:
+				data = await response.json(content_type=None)
+				for item in data['items']:
+					if int(item['type']) == 0:
+						print(item['name'] + '   ' + 'https://www.fshare.vn/folder/' + item['linkcode'])
+					if int(item['type']) == 1:
+						print(item['name'] + '   ' + 'https://www.fshare.vn/file/' + item['linkcode'] + '   ' + '{:0.3f}'.format(item['size'] / 1073741824))
+				if int(data['current']['type']) == 0:
+					print(data['current']['name'] + '   ' + 'https://www.fshare.vn/folder/' + data['current']['linkcode'])
+				if int(data['current']['type']) == 1:
+					print(data['current']['name'] + '   ' + 'https://www.fshare.vn/file/' + data['current']['linkcode'] + '   ' + '{:0.3f}'.format(data['current']['size'] / 1073741824))
+			except(json.JSONDecodeError, KeyError):
+				try:
+					if int(data['current']['type']) == 0:
+						print(data['current']['name'] + '   ' + 'https://www.fshare.vn/folder/' + data['current']['linkcode'])
+					if int(data['current']['type']) == 1:
+						print(data['current']['name'] + '   ' + 'https://www.fshare.vn/file/' + data['current']['linkcode'] + '   ' + '{:0.3f}'.format(data['current']['size'] / 1073741824))
+				except(UnboundLocalError, KeyError):
+					print("File Not Found")
 	async def request_file(self, url):
 		async with ClientSession() as session:
 			task = asyncio.ensure_future(self.request_info(session, url))
@@ -214,7 +236,7 @@ class fshare:
 		tasks = []
 		async with ClientSession() as session:
 			for page in range(maxpage + 1):
-				task = asyncio.ensure_future(self.request_info(session, url, page))
+				task = asyncio.ensure_future(self.request_info_massive_folder(session, url, page))
 				tasks.append(task)
 			await asyncio.gather(*tasks)
 	async def bound_request_info(self, sem, session, filename, linkcode):
@@ -223,15 +245,18 @@ class fshare:
 			await asyncio.sleep(1)
 	async def info_from_file(self, filename):
 		list_of_code = []
-		with open('desktop/' + filename + '.txt') as file:
-			for line in file:
-				stripped_line = line.strip()
-				line_list = stripped_line[-12:].split()
-				list_of_code.extend(line_list)
-		tasks = []
-		sem = asyncio.Semaphore(10)
-		async with ClientSession() as session:
-			for code in list_of_code:
-				task = asyncio.ensure_future(self.bound_request_info(sem, session, filename, code))
-				tasks.append(task)
-			await asyncio.gather(*tasks)
+		try:
+			with open(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop') + '\\' + filename + '.txt') as file:
+				for line in file:
+					stripped_line = line.strip()
+					line_list = stripped_line[-12:].split()
+					list_of_code.extend(line_list)
+			tasks = []
+			sem = asyncio.Semaphore(10)
+			async with ClientSession() as session:
+				for code in list_of_code:
+					task = asyncio.ensure_future(self.bound_request_info(sem, session, filename, code))
+					tasks.append(task)
+				await asyncio.gather(*tasks)
+		except FileNotFoundError:
+			print("There's no " + filename + ".txt in your desktop.")
