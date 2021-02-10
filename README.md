@@ -5,7 +5,7 @@
 ## Getting started  
 - First, clone this `fshare-scrape` with `git`:  
 	``` git
-	git clone https://github.com/nqh00/fshare-scrape
+	git clone https://github.com/nqh00/fshare-scrape.git
 	```  
 - Then `cd` to `fshare-scrape`.
 - Run your code with `python`.
@@ -22,11 +22,11 @@ bot = fshare(email="Your email", password="Your password")
 bot.login()
 
 # Download single fshare link
-bot.download()
+bot.download(URL)
 ```
 **Result**  
 ```
-http://download014.fshare.vn/dl/+kYq54+P2Bo6rwx6JmSMDKSdbogsya8dlRPiwxIs6RK2mQ90VCgOv2fgsLyXkA5fBu9XALh6tmmZAmOF/Silicon.Valley.S01.720p.HDTV.E008-PhimVIPvn.net.mp4
+http://download001.fshare.vn/dl/.../Your.Movie.2021.mp4
 ```  
 ## Requirements  
 * Python 3.5+
@@ -40,3 +40,4 @@ http://download014.fshare.vn/dl/+kYq54+P2Bo6rwx6JmSMDKSdbogsya8dlRPiwxIs6RK2mQ90
 	``` cmd
 	curl -L -o $name -C - $i -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" -H "Referer: https://twist.moe/"
 	```
+- Issues: `curl` fails to download due to connection reset.
