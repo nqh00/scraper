@@ -7,9 +7,8 @@ from Cryptodome.Cipher import AES
 
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 TOKEN = '0df14814b9e590a1f26d3071a4ed7974'
-name = 'shingeki-no-kyojin-the-final-season'
 
-def request():
+def request(name):
 	headers = {
 		'X-Access-Token': TOKEN,
 	}
