@@ -6,9 +6,7 @@ import json
 import os
 class fshare:
 
-"""
-Default contructor with email and password required
-"""
+# Default contructor with email and password required
 	def __init__(self, email, password):
 		self.email = email
 		self.password = password
@@ -16,7 +14,6 @@ Default contructor with email and password required
 		self.headers = {
 			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
 		}
-		self.items = {}
 
 # This method login to fshare using requests
 	def login(self):
@@ -63,7 +60,7 @@ Default contructor with email and password required
 		}
 		response = request("POST", "https://api.fshare.vn/api/session/download", headers=self.headers, data=json.dumps(payload_token))
 		try:
-			data = response.json(content_type=None)
+			data = response.json()
 			print(data['location'])
 		except(json.JSONDecodeError, KeyError):
 			try:
@@ -110,7 +107,7 @@ Default contructor with email and password required
 		}
 		async with session.post("https://api.fshare.vn/api/session/download", headers=self.headers, data=json.dumps(payload_token)) as response:
 			try:
-				data = await response.json(content_type=None)
+				data = await response.json()
 				print(data['location'])
 			except(json.JSONDecodeError, KeyError):
 				try:
@@ -127,7 +124,7 @@ Default contructor with email and password required
 		}
 		async with session.post("https://api.fshare.vn/api/session/download", headers=self.headers, data=json.dumps(payload_token)) as response:
 			try:
-				data = await response.json(content_type=None)
+				data = await response.json()
 				txt.write(data['location'])
 			except(json.JSONDecodeError, KeyError):
 				try:
@@ -175,20 +172,22 @@ Default contructor with email and password required
 		linkcode = url[-12:]
 		async with session.get('https://www.fshare.vn/api/v3/files/folder?linkcode=' + linkcode + '&sort=type%2Cname') as response:
 			try:
-				data = await response.json(content_type=None)
-				self.items.update(data['items'])
-				self.items.update(data['current'])
-				if self.items['type'] == 0:
-					print(self.items['name'] + '   ' + 'https://www.fshare.vn/folder/' + self.items['linkcode'])
-				if self.items['type'] == 1:
-					print(item['name'] + '   ' + 'https://www.fshare.vn/file/' + self.items['linkcode'] + '   ' + '{:0.3f}'.format(self.items['size'] / 1073741824))
+				data = await response.json()
+				for item in data['items']:
+					if int(item['type']) == 0:
+						print(item['name'] + '{ }' + 'https://www.fshare.vn/folder/' + item['linkcode'])
+					if int(item['type']) == 1:
+						print(item['name'] + '{ }' + 'https://www.fshare.vn/file/' + item['linkcode'] + '{ }' + '{:0.3f}'.format(item['size'] / 1073741824))
+				if int(data['current']['type']) == 0:
+					print(data['current']['name'] + '{ }' + 'https://www.fshare.vn/folder/' + data['current']['linkcode'])
+				if int(data['current']['type']) == 1:
+					print(data['current']['name'] + '{ }' + 'https://www.fshare.vn/file/' + data['current']['linkcode'] + '{ }' + '{:0.3f}'.format(data['current']['size'] / 1073741824))
 			except(json.JSONDecodeError, KeyError):
 				try:
-					self.items.update(data['current'])
-					if self.items['type'] == 0:
-						print(self.items['name'] + '   ' + 'https://www.fshare.vn/folder/' + self.items['linkcode'])
-					if self.items['type'] == 1:
-						print(item['name'] + '   ' + 'https://www.fshare.vn/file/' + self.items['linkcode'] + '   ' + '{:0.3f}'.format(self.items['size'] / 1073741824))
+					if int(data['current']['type']) == 0:
+						print(data['current']['name'] + '{ }' + 'https://www.fshare.vn/folder/' + data['current']['linkcode'])
+					if int(data['current']['type']) == 1:
+						print(data['current']['name'] + '{ }' + 'https://www.fshare.vn/file/' + data['current']['linkcode'] + '{ }' + '{:0.3f}'.format(data['current']['size'] / 1073741824))
 				except(UnboundLocalError, KeyError):
 					print("File Not Found")
 
@@ -198,7 +197,7 @@ Default contructor with email and password required
 		if page:
 			async with session.get('https://www.fshare.vn/api/v3/files/folder?linkcode=' + linkcode + '&sort=type%2Cname&page=' + str(page) + '&per-page=50') as response:
 				try:
-					data = await response.json(content_type=None)
+					data = await response.json()
 					for item in data['items']:
 						if int(item['type']) == 0:
 							txt.write(item['name'] + '\t' + 'https://www.fshare.vn/folder/' + item['linkcode'] + '\n')
@@ -219,7 +218,7 @@ Default contructor with email and password required
 		else:
 			async with session.get('https://www.fshare.vn/api/v3/files/folder?linkcode=' + linkcode + '&sort=type%2Cname') as response:
 				try:
-					data = await response.json(content_type=None)
+					data = await response.json()
 					for item in data['items']:
 						if int(item['type']) == 0:
 							txt.write(item['name'] + '\t' + 'https://www.fshare.vn/folder/' + item['linkcode'] + '\n')
@@ -244,7 +243,7 @@ Default contructor with email and password required
 		linkcode = url[-12:]
 		async with session.get('https://www.fshare.vn/api/v3/files/folder?linkcode=' + linkcode + '&sort=type%2Cname&page=' + str(page) + '&per-page=50') as response:
 			try:
-				data = await response.json(content_type=None)
+				data = await response.json()
 				for item in data['items']:
 					if int(item['type']) == 0:
 						print(item['name'] + '   ' + 'https://www.fshare.vn/folder/' + item['linkcode'])

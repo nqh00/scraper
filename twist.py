@@ -48,6 +48,7 @@ def decrypt(encrypted, passphrase):
 def extract(source):
 	decrypt_ed = decrypt(source.encode('UTF-8'), KEY).decode('UTF-8').lstrip(' ')
 	url = 'https://cdn.twist.moe' + quote(decrypt_ed, safe='~@#$&()*!+=:;,.?/\'')
-	print(url)
+	return url
 
+extract(request('shingeki-no-kyojin-the-final-season'))
 # curl -L -o $name -C - $i -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" -H "Referer: https://twist.moe/"
