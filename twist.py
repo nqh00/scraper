@@ -66,5 +66,3 @@ def extract(source):
 	return url
 
 # curl -L -o $name -C - $i -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" -H "Referer: https://twist.moe/"
-
-twistmoe('https://twist.moe/a/shingeki-no-kyojin-the-final-season/10')
