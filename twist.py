@@ -23,7 +23,7 @@ def twistmoe(url):
 def request_info(name):
 	response = get('https://api.twist.moe/api/anime/' + name, headers=headers)
 	data = response.json()
-	title.update({'title': data['alt_title']})
+	title.update({'title': data['title']}) if data['alt_title'] is None else title.update({'title': data['alt_title']})
 	title.update({'season': data['season']})
 
 # This method sends request to retrieve episodes json
@@ -66,3 +66,5 @@ def extract(source):
 	return url
 
 # curl -L -o $name -C - $i -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" -H "Referer: https://twist.moe/"
+
+twistmoe('https://twist.moe/a/hanasaku-iroha/1')

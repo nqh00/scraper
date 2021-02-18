@@ -151,3 +151,5 @@ def download(url, output=None, proxy=None, use_cookies=None):
 			pass
 
 	return output
+
+download('https://drive.google.com/uc?id=1PJT0aJZKbw-ERfTA9kf7jEM-6Vi4hPeu', 'C:\\Users\\NQH\\Desktop')

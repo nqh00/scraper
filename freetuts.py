@@ -54,6 +54,3 @@ def freetuts(id):
 	request_download(url)
 	for k, v in download_link.items():
 		print(k + ': ' + v)
-
-# search('machine learning')
-freetuts('5442')
