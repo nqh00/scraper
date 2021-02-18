@@ -4,13 +4,13 @@ from requests.utils import unquote
 from lxml import html
 
 course_link = {}
-download_link = {}
+services = {}
 
 # This method search all course contains your keyword
 def search(keyword):
 	request_search('https://%s%s%s' % ('dl.freetutsdownload.net/', '?s=', quote(keyword)))
 	for course, link in course_link.items():
-		print(course + '{ }' + link)
+		print(course + '\t\t' + link)
 
 # This method extract all course link in the search page 
 def request_search(url):
@@ -28,29 +28,33 @@ def request_search(url):
 	except IndexError:
 		pass
 
+# This method reformat url
+def unquoted(url):
+	return unquote(url.split('/')[4][5:])
+
 # This method extract all download service available
 def request_download(url):
 	response = get(url)
 	tree = html.fromstring(response.text)
-	one = tree.xpath("//a[@title='Download Link OneDrive']/@href")
-	drive = tree.xpath("//a[@title='Download Link Google Drive']/@href")
-	for link in one:
-		if 'sharepoint' in link:
-			download_link.update({'onedrive': unquote(link.split('/')[4][5:])})
-	for link in drive:
-		if 'bayfiles' in link:
-			download_link.update({'bayfiles': unquote(link.split('/')[4][5:])})
-		if 'drive' in link:
-			if 'drive' in download_link:
-				download_link.update({'drive backup': unquote(link.split('/')[4][5:])})
-			else:
-				download_link.update({'drive': unquote(link.split('/')[4][5:])})
-		if 'uptobox' in link:
-			download_link.update({'uptobox': unquote(link.split('/')[4][5:])})
+	href = tree.xpath("//a[@target='_blank']/@href")
+	links = []
+
+	for link in href:
+		links.append(unquoted(link))
+
+	for link in links:
+		services.update(
+			{
+			'DRIVE' if 'drive' in link
+					and 'drive' in services.keys()
+					else link.split('/')[2].split('.')[0] 
+			: link
+			}
+		)
 
 # This method scrape download link with id provided
 def freetuts(id):
 	url = id if 'https' in id else '%s%s' % ('https://dl.freetutsdownload.net/tutsID-', id)
 	request_download(url)
-	for k, v in download_link.items():
-		print(k + ': ' + v)
+	for service, url in services.items():
+		print(service + ': ' + url)
