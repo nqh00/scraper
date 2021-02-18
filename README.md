@@ -43,3 +43,13 @@ Send your request headers with `Referer` to access:
 ```json
 "Referer": "https://twist.moe/"
 ```
+# freetutsdownload.net
+- Get download link with freetuts' `id`:
+```python
+freetuts('id')
+```
+**Result**
+```
+onedrive: %Ondrive%link
+drive: %Google%Drive%link
+```
