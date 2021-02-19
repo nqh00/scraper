@@ -6,11 +6,17 @@ from lxml import html
 course_link = {}
 services = {}
 
-# This method search all course contains your keyword
-def search(keyword):
+# This method search all course contains your keyword and return all available download services
+def freetuts(keyword):
 	request_search('https://%s%s%s' % ('dl.freetutsdownload.net/', '?s=', quote(keyword)))
 	for course, link in course_link.items():
-		print(course + '\t\t' + link)
+		print(course)
+		request_download(link)
+		for service, url in services.items():
+			print(service + ': ' + url)
+		print()
+		services.clear()
+
 
 # This method extract all course link in the search page 
 def request_search(url):
@@ -34,27 +40,25 @@ def unquoted(url):
 
 # This method extract all download service available
 def request_download(url):
-	response = get(url)
+	response = get(url, timeout=5)
 	tree = html.fromstring(response.text)
 	href = tree.xpath("//a[@target='_blank']/@href")
 	links = []
 
 	for link in href:
-		links.append(unquoted(link))
+		if link != 'javascript:void(0);':
+			links.append(unquoted(link))
 
 	for link in links:
 		services.update(
 			{
 			'DRIVE' if 'drive' in link
 					and 'drive' in services.keys()
-					else link.split('/')[2].split('.')[0] 
+					else (
+						link.split('/')[2].split('.')[1] 
+						if '-' in link.split('/')[2]
+						else link.split('/')[2].split('.')[0]
+					) 
 			: link
 			}
 		)
-
-# This method scrape download link with id provided
-def freetuts(id):
-	url = id if 'https' in id else '%s%s' % ('https://dl.freetutsdownload.net/tutsID-', id)
-	request_download(url)
-	for service, url in services.items():
-		print(service + ': ' + url)

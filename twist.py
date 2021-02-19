@@ -7,7 +7,7 @@ from Cryptodome.Cipher import AES
 from json import JSONDecodeError
 
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
-# headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
+headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
 title = {}
 cryptoEpisode = []
 json = {}
@@ -36,8 +36,7 @@ def check(keyword, title):
 
 # This method sends request to retrieve episodes json
 def request_episode(slug):
-	# response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers, timeout=10)
-	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'))
+	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers, timeout=10)
 	try:
 		data = response.json()
 		for src in data:
@@ -47,7 +46,7 @@ def request_episode(slug):
 
 	for episode in cryptoEpisode:
 		print('Episode %s: %s'  % (episode['episode'], extract(episode['url'])))
-	print('\n')
+	print()
 
 # (CryptoJS decipher)[https://stackoverflow.com/a/36780727]
 def unpad(data):
@@ -78,7 +77,13 @@ def decrypt(encrypted, passphrase):
 
 def extract(source):
 	decrypt_ed = decrypt(source.encode('UTF-8'), KEY).decode('UTF-8').lstrip(' ')
-	url = 'https://cdn.twist.moe' + quote(decrypt_ed, safe='~@#$&()*!+=:;,.?/\'')
+	url = '%s%s' % ('https://cdn.twist.moe', quote(decrypt_ed, safe='[]~@#$&()*!+=:;,.?/\''))
 	return url
 
-# curl -L -o $name -C - $i -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" -H "Referer: https://twist.moe/"
+# curl -LI  https://air-cdn.twist.moe/anime/shingekinokyojins4/[SubsPlease]%20Shingeki%20no%20Kyojin%20(The%20Final%20Season)%20-%2068%20(1080p)%20[C986DF88].mp4 ^
+# -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" ^
+# -H "Referer: https://twist.moe/" ^
+# -o /dev/null ^
+# -w "%{http_code}\n" ^
+# -g ^
+# -s
