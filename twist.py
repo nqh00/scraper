@@ -4,34 +4,50 @@ from requests import get
 from requests.utils import quote
 from hashlib import md5
 from Cryptodome.Cipher import AES
+from json import JSONDecodeError
 
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
-headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
+# headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
 title = {}
 cryptoEpisode = []
+json = {}
 
-# This method return episode and its stream casting web service
-def twistmoe(url):
-	name = url.split('/')[4]
-	request_info(name)
-	print(title['title']) if title['season'] == 0 else print('%s - Season %s' % (title['title'], title['season']))
-	request_episode(name)
-	for eps in cryptoEpisode:
-		print('Episode %s: %s'  % (eps['episode'], extract(eps['url'])))
+# This method search your keyword and return all available anime with following media link
+def twistmoe(keyword):
+	response = get('https://api.twist.moe/api/anime')
+	json = response.json()
+	for anime in json:
+		if anime['alt_title'] is None:
+			if check(keyword, anime['title']):
+				print(anime['title']) if anime['season'] == 0 else print('%s - Season %s' % (anime['title'], anime['season']))
+				request_episode(anime['slug']['slug'])
+		elif check(keyword, anime['title']) or check(keyword, anime['alt_title']):
+			print(anime['alt_title']) if anime['season'] == 0 else print('%s - Season %s' % (anime['alt_title'], anime['season']))
+			request_episode(anime['slug']['slug'])
 
-# This method sends request to retrieve gerenal info
-def request_info(name):
-	response = get('https://api.twist.moe/api/anime/' + name, headers=headers)
-	data = response.json()
-	title.update({'title': data['title']}) if data['alt_title'] is None else title.update({'title': data['alt_title']})
-	title.update({'season': data['season']})
+# This method check if keyword and title shares the similar
+def check(keyword, title):
+	keywords = keyword.lower().split(' ')
+	title = title.lower()
+	for word in keywords:
+		if not word in title:
+			return False
+	return True
 
 # This method sends request to retrieve episodes json
-def request_episode(name):
-	response = get('https://api.twist.moe/api/anime/' + name + '/sources', headers=headers)
-	data = response.json()
-	for src in data:
-		cryptoEpisode.append({'episode': src['number'], 'url': src['source']})
+def request_episode(slug):
+	# response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers, timeout=10)
+	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'))
+	try:
+		data = response.json()
+		for src in data:
+			cryptoEpisode.append({'episode': src['number'], 'url': src['source']})
+	except JSONDecodeError:
+		pass
+
+	for episode in cryptoEpisode:
+		print('Episode %s: %s'  % (episode['episode'], extract(episode['url'])))
+	print('\n')
 
 # (CryptoJS decipher)[https://stackoverflow.com/a/36780727]
 def unpad(data):
@@ -66,5 +82,3 @@ def extract(source):
 	return url
 
 # curl -L -o $name -C - $i -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" -H "Referer: https://twist.moe/"
-
-twistmoe('https://twist.moe/a/hanasaku-iroha/1')
