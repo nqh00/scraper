@@ -5,6 +5,7 @@ from requests.utils import quote
 from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
+from requests import head
 
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
@@ -18,15 +19,15 @@ def twistmoe(keyword):
 	json = response.json()
 	for anime in json:
 		if anime['alt_title'] is None:
-			if check(keyword, anime['title']):
+			if check_keyword(keyword, anime['title']):
 				print(anime['title']) if anime['season'] == 0 else print('%s - Season %s' % (anime['title'], anime['season']))
 				request_episode(anime['slug']['slug'])
-		elif check(keyword, anime['title']) or check(keyword, anime['alt_title']):
+		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
 			print(anime['alt_title']) if anime['season'] == 0 else print('%s - Season %s' % (anime['alt_title'], anime['season']))
 			request_episode(anime['slug']['slug'])
 
 # This method check if keyword and title shares the similar
-def check(keyword, title):
+def check_keyword(keyword, title):
 	keywords = keyword.lower().split(' ')
 	title = title.lower()
 	for word in keywords:
@@ -34,21 +35,29 @@ def check(keyword, title):
 			return False
 	return True
 
+# This method check status of the request
+def check_request(url):
+	if head(url, headers={'Referer': 'https://twist.moe/'}).status_code == 200:
+		return True
+	return False
+
 # This method sends request to retrieve episodes json
 def request_episode(slug):
-	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers, timeout=10)
+	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers)
 	try:
 		data = response.json()
 		for src in data:
 			cryptoEpisode.append({'episode': src['number'], 'url': src['source']})
 	except JSONDecodeError:
-		pass
+		print('Fails to connect to server!')
 
 	for episode in cryptoEpisode:
 		print('Episode %s: %s'  % (episode['episode'], extract(episode['url'])))
 	print()
 
-# (CryptoJS decipher)[https://stackoverflow.com/a/36780727]
+"""
+(CryptoJS decipher)[https://stackoverflow.com/a/36780727]
+"""
 def unpad(data):
 	return data[:-(data[-1] if type(data[-1]) == int else ord(data[data[-1]]))]
 
@@ -75,15 +84,14 @@ def decrypt(encrypted, passphrase):
 	aes = AES.new(key, AES.MODE_CBC, iv)
 	return unpad(aes.decrypt(encrypted[16:]))
 
+# This method return good status link
 def extract(source):
 	decrypt_ed = decrypt(source.encode('UTF-8'), KEY).decode('UTF-8').lstrip(' ')
-	url = '%s%s' % ('https://cdn.twist.moe', quote(decrypt_ed, safe='[]~@#$&()*!+=:;,.?/\''))
-	return url
-
-# curl -LI  https://air-cdn.twist.moe/anime/shingekinokyojins4/[SubsPlease]%20Shingeki%20no%20Kyojin%20(The%20Final%20Season)%20-%2068%20(1080p)%20[C986DF88].mp4 ^
-# -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36" ^
-# -H "Referer: https://twist.moe/" ^
-# -o /dev/null ^
-# -w "%{http_code}\n" ^
-# -g ^
-# -s
+	suffix = quote(decrypt_ed, safe='[]~@#$&()*!+=:;,.?/\'')
+	cdn = 'https://cdn.twist.moe'
+	aircdn = 'https://air-cdn.twist.moe'
+	if check_request('%s%s' % (cdn, suffix)):
+		return '%s%s' % (cdn, suffix)
+	if check_request('%s%s' % (aircdn, suffix)):
+		return '%s%s' % (aircdn, suffix)
+	return 'No links available!'
