@@ -6,7 +6,10 @@ from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
 from requests import head
+from os import path
+import sys
 
+abs_dirname = path.dirname(path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
 title = {}
@@ -14,17 +17,27 @@ cryptoEpisode = []
 json = {}
 
 # This method search your keyword and return all available anime with following media link
-def twistmoe(keyword):
+def main(keyword):
 	response = get('https://api.twist.moe/api/anime')
 	json = response.json()
 	for anime in json:
 		if anime['alt_title'] is None:
 			if check_keyword(keyword, anime['title']):
-				print(anime['title']) if anime['season'] == 0 else print('%s - Season %s' % (anime['title'], anime['season']))
-				request_episode(anime['slug']['slug'])
+				if anime['season'] == 0:
+					title = anime['title']
+				else:
+					title = '%s - Season %s' % (anime['title'], anime['season'])
+				txt_title = '%s%s%s%s' % (abs_dirname, '\\__temp__\\', title, '.txt')
+				print(title)
+				request_episode(anime['slug']['slug'], txt_title)
 		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
-			print(anime['alt_title']) if anime['season'] == 0 else print('%s - Season %s' % (anime['alt_title'], anime['season']))
-			request_episode(anime['slug']['slug'])
+			if anime['season'] == 0:
+				alt_title = anime['alt_title']
+			else:
+				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
+			txt_alt_title = '%s%s%s%s' % (abs_dirname, '\\__temp__\\', alt_title, '.txt')
+			print(alt_title)
+			request_episode(anime['slug']['slug'], txt_alt_title)
 
 # This method check if keyword and title shares the similar
 def check_keyword(keyword, title):
@@ -42,7 +55,7 @@ def check_request(url):
 	return False
 
 # This method sends request to retrieve episodes json
-def request_episode(slug):
+def request_episode(slug, textfile):
 	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers)
 	try:
 		data = response.json()
@@ -51,9 +64,16 @@ def request_episode(slug):
 	except JSONDecodeError:
 		print('Fails to connect to server!')
 
+	txt = open(textfile, 'w')
 	for episode in cryptoEpisode:
-		print('Episode %s: %s'  % (episode['episode'], extract(episode['url'])))
-	print()
+		url = extract(episode['url'])
+		if url == 0:
+			print('Episode %s: %s'  % (episode['episode'], 'No links available!'))
+		else:
+			print('Episode %s: %s'  % (episode['episode'], url))
+			txt.write('%s %s\n'  % (episode['episode'], url))
+	print() # Space for each season
+	txt.close()
 
 """
 (CryptoJS decipher)[https://stackoverflow.com/a/36780727]
@@ -94,4 +114,7 @@ def extract(source):
 		return '%s%s' % (cdn, suffix)
 	if check_request('%s%s' % (aircdn, suffix)):
 		return '%s%s' % (aircdn, suffix)
-	return 'No links available!'
+	return 0
+
+if __name__ == "__main__":
+	main(sys.argv[1])
