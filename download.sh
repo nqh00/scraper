@@ -11,7 +11,7 @@ case "${unameOut}" in
     *)          machine="UNKNOWN:${unameOut}"
 esac
 
-# Check python condition
+# Check `python` condition
 python3x="py -3"
 if [[ $machine != "Windows" ]]; then
     if command -v python3 &>/dev/null; then
@@ -24,19 +24,22 @@ if [[ $machine != "Windows" ]]; then
     fi
 fi
 
-# Check aria2c condition
+# Check `aria2c` condition
 if ! [[ -x "$(command -v aria2c)" ]]; then
 	read -p $'aria2c is NOT installed.\nVisit https://github.com/aria2/aria2/releases/latest for more info.'
 	exit 1;
 fi
 
-# Create temporary directory
-temp_path="$PWD/scraper/__temp__"
-if [ ! -d  $temp_path ]
-then
-	mkdir $temp_path
-	attrib +h $temp_path 
-	touch $temp_path/temp.txt
+# Create temporary directory and temporary text file
+path="$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
+if [ ! -d  $path/__temp__ ]; then
+	mkdir $path/__temp__
+	touch $path/__temp__/temp.txt
+	attrib +h $path/__temp__
+	attrib +h $path/__temp__/temp.txt
+elif [[ ! -d $path/__temp__/temp.txt ]]; then
+	touch $path/__temp__/temp.txt # this file for not raising `cat` exception: no file in directory
+	attrib +h $path/__temp__/temp.txt
 fi
 
 # python execution
@@ -44,7 +47,7 @@ run_python() {
 	echo "Search for your anime:"
 	read anime && [[ "$anime" != "" ]] || exit 1
 	echo
-	$python3x "$PWD/scraper/twist.py" "$anime"
+	$python3x "$path/twist.py" "$anime"
 }
 
 # Check downloading state
@@ -60,14 +63,14 @@ state_check() {
 download() {
 	# Space delimiter
 	IFS=' '
-	for file in $temp_path/*.txt; do
+	for file in $path/__temp__/*.txt; do
 		while read -r _ep _url; do
 			name=$(echo $file | cut -d'/' -f7 | cut -d'.' -f1) # Get the 7th & 1st element of the delimiter array
-			url=${_url%$'\r'} # Strip the \r from each line
+			url=${_url%$'\r'} # Strip the `\r` from each line
 			echo "Downloading $name"
 			aria2c "$url" \
 				-o "$name Episode $_ep" \
-				--dir "$PWD/scraper/$name" \
+				--dir "$path/$name" \
 				--header="Referer: https://twist.moe/" \
 				--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36"
 		done < "$file"
@@ -76,7 +79,7 @@ download() {
 }
 
 # Return total lines in all text file combine
-total=$(cat $temp_path/*.txt | wc -l | xargs)
+total=$(cat $path/__temp__/*.txt | wc -l | xargs)
 if [[ "$total" -eq "0" ]]; then
 	run_python
 elif [[ "$total" -eq "1" ]]; then
@@ -90,11 +93,11 @@ echo
 
 if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
 	download
-else
-	rm $temp_path/*.txt # Clean up
+elif [[ "$confirm" == [nN] || "$confirm" == [nN][oO] ]]; then
+	rm $path/__temp__/*.txt # Clean up
 	run_python
 	echo
-	new_total=$(cat $temp_path/*.txt | wc -l | xargs)
+	new_total=$(cat $path/__temp__/*.txt | wc -l | xargs)
 	if [[ "$new_total" -eq "1" ]]; then
 		echo "There are only 1 URL in queue waiting for download."
 		download
@@ -102,4 +105,7 @@ else
 		echo "There are total $new_total episodes in queue waiting for download."
 		download
 	fi
+else
+	read -p "Press enter to exit."
+	exit 1;
 fi

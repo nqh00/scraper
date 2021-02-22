@@ -12,7 +12,6 @@ import sys
 abs_dirname = path.dirname(path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
-title = {}
 cryptoEpisode = []
 json = {}
 
@@ -20,24 +19,30 @@ json = {}
 def main(keyword):
 	response = get('https://api.twist.moe/api/anime')
 	json = response.json()
+	found = False
 	for anime in json:
 		if anime['alt_title'] is None:
 			if check_keyword(keyword, anime['title']):
+				found = True
 				if anime['season'] == 0:
 					title = anime['title']
 				else:
 					title = '%s - Season %s' % (anime['title'], anime['season'])
-				txt_title = '%s%s%s%s' % (abs_dirname, '\\__temp__\\', title, '.txt')
+				txt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, title)
 				print(title)
 				request_episode(anime['slug']['slug'], txt_title)
 		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
+			found = True
 			if anime['season'] == 0:
 				alt_title = anime['alt_title']
 			else:
 				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
-			txt_alt_title = '%s%s%s%s' % (abs_dirname, '\\__temp__\\', alt_title, '.txt')
+			txt_alt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, alt_title)
 			print(alt_title)
 			request_episode(anime['slug']['slug'], txt_alt_title)
+	if not found:
+		print('There\'s no anime matching your "%s"' % (keyword))
+
 
 # This method check if keyword and title shares the similar
 def check_keyword(keyword, title):
@@ -56,7 +61,7 @@ def check_request(url):
 
 # This method sends request to retrieve episodes json
 def request_episode(slug, textfile):
-	response = get('%s%s%s' % ('https://api.twist.moe/api/anime/', slug, '/sources'), headers=headers)
+	response = get('https://api.twist.moe/api/anime/%s/sources' % (slug), headers=headers)
 	try:
 		data = response.json()
 		for src in data:
@@ -68,7 +73,7 @@ def request_episode(slug, textfile):
 	for episode in cryptoEpisode:
 		url = extract(episode['url'])
 		if url == 0:
-			print('Episode %s: %s'  % (episode['episode'], 'No links available!'))
+			print('Episode %s: No links available!'  % (episode['episode']))
 		else:
 			print('Episode %s: %s'  % (episode['episode'], url))
 			txt.write('%s %s\n'  % (episode['episode'], url))
@@ -108,12 +113,11 @@ def decrypt(encrypted, passphrase):
 def extract(source):
 	decrypt_ed = decrypt(source.encode('UTF-8'), KEY).decode('UTF-8').lstrip(' ')
 	suffix = quote(decrypt_ed, safe='[]~@#$&()*!+=:;,.?/\'')
-	cdn = 'https://cdn.twist.moe'
-	aircdn = 'https://air-cdn.twist.moe'
-	if check_request('%s%s' % (cdn, suffix)):
-		return '%s%s' % (cdn, suffix)
-	if check_request('%s%s' % (aircdn, suffix)):
-		return '%s%s' % (aircdn, suffix)
+
+	if check_request('https://cdn.twist.moe%s' % (suffix)):
+		return 'https://cdn.twist.moe%s' % (suffix)
+	if check_request('https://air-cdn.twist.moe%s' % (suffix)):
+		return 'https://air-cdn.twist.moe%s' % (suffix)
 	return 0
 
 if __name__ == "__main__":
