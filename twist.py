@@ -5,12 +5,13 @@ from requests.utils import quote
 from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
-from requests import head
+from http.client import HTTPSConnection
 from os import path
 import sys
 
 abs_dirname = path.dirname(path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
+payload = ''
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
 cryptoEpisode = []
 json = {}
@@ -42,6 +43,7 @@ def main(keyword):
 			request_episode(anime['slug']['slug'], txt_alt_title)
 	if not found:
 		print('There\'s no anime matching your "%s"' % (keyword))
+		sys.exit(1) # Return value for bash
 
 
 # This method check if keyword and title shares the similar
@@ -54,8 +56,15 @@ def check_keyword(keyword, title):
 	return True
 
 # This method check status of the request
-def check_request(url):
-	if head(url, headers={'Referer': 'https://twist.moe/'}).status_code == 200:
+def check_request(host, suffix):
+	conn = HTTPSConnection(host)
+	payload = ''
+	headers = {
+	  'Referer': 'https://twist.moe/'
+	}
+	conn.request("HEAD", suffix, payload, headers)
+	res = conn.getresponse()
+	if res.status == 200:
 		return True
 	return False
 
@@ -114,9 +123,9 @@ def extract(source):
 	decrypt_ed = decrypt(source.encode('UTF-8'), KEY).decode('UTF-8').lstrip(' ')
 	suffix = quote(decrypt_ed, safe='[]~@#$&()*!+=:;,.?/\'')
 
-	if check_request('https://cdn.twist.moe%s' % (suffix)):
+	if check_request('cdn.twist.moe', suffix):
 		return 'https://cdn.twist.moe%s' % (suffix)
-	if check_request('https://air-cdn.twist.moe%s' % (suffix)):
+	elif check_request('air-cdn.twist.moe', suffix):
 		return 'https://air-cdn.twist.moe%s' % (suffix)
 	return 0
 
