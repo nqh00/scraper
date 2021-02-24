@@ -1,4 +1,8 @@
+import os
+import sys
 import base64
+import unicodedata
+import string
 
 from requests import get
 from requests.utils import quote
@@ -6,14 +10,11 @@ from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
 from http.client import HTTPSConnection
-import os
-import sys
 
 abs_dirname = os.path.dirname(os.path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 payload = ''
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
-cryptoEpisode = []
 json = {}
 
 # This method search your keyword and return all available anime with following media link
@@ -29,7 +30,7 @@ def main(keyword):
 					title = anime['title']
 				else:
 					title = '%s - Season %s' % (anime['title'], anime['season'])
-				txt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, title)
+				txt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, clean_filename(title))
 				os.system('echo %s' % (title))
 				request_episode(anime['slug']['slug'], txt_title)
 		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
@@ -38,7 +39,7 @@ def main(keyword):
 				alt_title = anime['alt_title']
 			else:
 				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
-			txt_alt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, alt_title)
+			txt_alt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, clean_filename(alt_title))
 			os.system('echo %s' % (alt_title))
 			request_episode(anime['slug']['slug'], txt_alt_title)
 	if not found:
@@ -68,8 +69,23 @@ def check_request(host, suffix):
 		return True
 	return False
 
+"""
+Make sure the string is a valid file name
+https://gist.github.com/wassname/1393c4a57cfcbf03641dbc31886123b8
+"""
+def clean_filename(filename):
+	# Keep only valid ASCII characters
+	cleaned_filename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore').decode()
+
+	# Keep only valid chararacters
+	valid_filename_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+	cleaned_filename = ''.join(c for c in cleaned_filename if c in valid_filename_chars)
+
+	return cleaned_filename
+
 # This method sends request to retrieve episodes json
 def request_episode(slug, textfile):
+	cryptoEpisode = []
 	response = get('https://api.twist.moe/api/anime/%s/sources' % (slug), headers=headers)
 	try:
 		data = response.json()
