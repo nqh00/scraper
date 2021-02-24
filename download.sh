@@ -50,6 +50,7 @@ check_total_url () {
 	if [[ "$1" -eq "0" ]]; then
 		run_python
 		if [[ "$found" -eq "1" ]]; then
+			echo
 			read -p "Press enter to exit and try another keyword."
 			exit 1;
 		fi
@@ -74,11 +75,12 @@ check_state () {
 
 # python execution
 run_python () {
+	clear
 	echo "Search for your anime:"
 	read -e anime && [[ "$anime" != "" ]] || exit 1
 	echo
 	stty -echo # Disable input
-	python "$PWD/twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
+	$python3x "$PWD/twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
 	stty echo # Re-enable input
 }
 
@@ -86,6 +88,8 @@ run_python () {
 download () {
 	# Space delimiter
 	IFS=' '
+	clear
+	stty -echo
 	for file in $path/*.txt; do
 		while read -r _ep _url; do
 			name=$(echo $file | cut -d'/' -f7 | cut -d'.' -f1) # Get the 7th & 1st element of the delimiter array
@@ -99,6 +103,7 @@ download () {
 				--always-resume
 		done < "$file"
 	done
+	stty echo
 	read -p "Press enter to exit."
 	exit 1;
 }
@@ -113,4 +118,5 @@ else
 	rm $path/*.txt # Clean up
 	check_directory
 	check_total_url "$(cat $path/*.txt | wc -l | xargs)"
+	download
 fi
