@@ -2,29 +2,33 @@
 ![forthebadge](http://forthebadge.com/images/badges/made-with-python.svg)
 
 ***Supported website:***
-|                |       |
-|----------------|-------|
-|fshare          |**[x]**|
-|google drive    |**[ ]**|
-|twist.moe       |**[x]**|
-|freetutsdownload|**[x]**|
+| |                |       | |
+|-|----------------|-------|-|
+| |fshare          |**[x]**| |
+| |google drive    |**[ ]**| |
+| |twist.moe       |**[x]**| |
+| |freetutsdownload|**[x]**| |
+| |                |       | |
 
-### fshare.**vn**
-> ***This application for vip accounts only***
+**Getting started**
 1. First, clone this **repo** with `git`:  
 ```batch
 git clone https://github.com/nqh00/scraper.git
 ```
 2. Then `cd` to `scraper`.
-3. Run your code with `python`.
-
-**Requirements**
- - **Python 3.5+**
- - [requests](https://github.com/request/request)
- - [aiohttp](https://github.com/aio-libs/aiohttp)
+3. Install all required dependencies with `pip`:
 ```batch
 pip install -r requirements.txt
 ```
+**Requirements**
+ - [**CygWin**](https://cygwin.com/setup-x86_64.exe) or [Git Bash](https://github.com/git-for-windows/git/releases/latest)
+ - [**Python**](https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe)
+ - [aria2c](https://github.com/aria2/aria2/releases/latest)
+ - [requests](https://github.com/request/request)
+ - [aiohttp](https://github.com/aio-libs/aiohttp)
+### fshare.**vn**
+> ***This application for vip accounts only***
+> 
 **Example code**
 ``` python
 from fshare import fshare
@@ -45,16 +49,11 @@ http://download001.fshare.vn/dl/.../Your%Movie%2021.mp4
 ### twist.moe
 Decrypt password from `JavaScript CryptoJS.AES` by implementing OpenSSL's [EVP BytesToKey](https://www.openssl.org/docs/crypto/EVP_BytesToKey.html).
 
-**Result**
+Run `download.sh` to search your anime:
+```bash
+download.sh
 ```
-Your%Anime%Title
-Episode 1: https://cdn.twist.moe/{}.mp4
-Episode 2: https://air-cdn.twist.moe/{}.mp4
-```  
-Visit either `cdn.twist.moe` or `air-cdn.twist.moe` with a `Referer` header request to access:
-```json
-"Referer": "https://twist.moe/"
-```
+If anime is found, it will automatically download to this **repo**.
 ### freetutsdownload.**net**
 Get all `freetus` available courses with `keyword`:
 ```python
