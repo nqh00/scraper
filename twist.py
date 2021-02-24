@@ -6,10 +6,10 @@ from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
 from http.client import HTTPSConnection
-from os import path
+import os
 import sys
 
-abs_dirname = path.dirname(path.abspath(__file__))
+abs_dirname = os.path.dirname(os.path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 payload = ''
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
@@ -30,7 +30,7 @@ def main(keyword):
 				else:
 					title = '%s - Season %s' % (anime['title'], anime['season'])
 				txt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, title)
-				print(title)
+				os.system('echo %s' % (title))
 				request_episode(anime['slug']['slug'], txt_title)
 		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
 			found = True
@@ -39,10 +39,10 @@ def main(keyword):
 			else:
 				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
 			txt_alt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, alt_title)
-			print(alt_title)
+			os.system('echo %s' % (alt_title))
 			request_episode(anime['slug']['slug'], txt_alt_title)
 	if not found:
-		print('There\'s no anime matching your "%s"' % (keyword))
+		os.system('echo There\'s no anime matching your "%s"!' % (keyword))
 		sys.exit(1) # Return value for bash
 
 
@@ -82,11 +82,11 @@ def request_episode(slug, textfile):
 	for episode in cryptoEpisode:
 		url = extract(episode['url'])
 		if url == 0:
-			print('Episode %s: No links available!'  % (episode['episode']))
+			os.system('echo Episode %s: No links available!'  % (episode['episode']))
 		else:
-			print('Episode %s: %s'  % (episode['episode'], url))
+			os.system('echo Episode %s: %s'  % (episode['episode'], url))
 			txt.write('%s %s\n'  % (episode['episode'], url))
-	print() # Space for each season
+	os.system('echo.') # Space for each season
 	txt.close()
 
 """
