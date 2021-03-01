@@ -82,13 +82,13 @@ run_python () {
 	stty -echo # Disable input
 	$python3x "$PWD/twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
 	stty echo # Re-enable input
+	echo
 }
 
 # Download all available URL
 download () {
 	# Space delimiter
 	IFS=' '
-	clear
 	stty -echo
 	for file in $path/*.txt; do
 		while read -r _ep _url; do
@@ -100,11 +100,15 @@ download () {
 				--dir "$PWD/$name" \
 				--header="Referer: https://twist.moe/" \
 				--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
-				--always-resume
+				--file-allocation=none \
+				--continue \
+				--always-resume \
+				--max-tries=0
+			clear
 		done < "$file"
 	done
 	stty echo
-	read -p "Press enter to exit."
+	read -p "Download has finished, press enter to exit."
 	exit 1;
 }
 
