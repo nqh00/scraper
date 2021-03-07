@@ -4,10 +4,11 @@
 ***Supported website:***
 | |                |       | |
 |-|----------------|-------|-|
-| |fshare          |**[x]**| |
-| |google drive    |**[ ]**| |
-| |twist.moe       |**[x]**| |
-| |freetutsdownload|**[x]**| |
+| |fshare          | **x** | |
+| |google drive    |       | |
+| |vikv            | **x** | |
+| |twist.moe       | **x** | |
+| |freetutsdownload| **x** | |
 | |                |       | |
 
 **Getting started**
@@ -24,10 +25,11 @@ pip install -r requirements.txt
  - [**CygWin**](https://cygwin.com/setup-x86_64.exe) or [Git Bash](https://github.com/git-for-windows/git/releases/latest)
  - [**Python**](https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe)
  - [aria2c](https://github.com/aria2/aria2/releases/latest)
+ - [ffmpeg](https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z)
  - [requests](https://github.com/request/request)
  - [aiohttp](https://github.com/aio-libs/aiohttp)
 ### fshare.**vn**
-> ***This application for vip accounts only***
+> *This application for vip accounts only*
 > 
 **Example code**
 ``` python
@@ -45,15 +47,12 @@ fs.download(URL)
 **Result**  
 ```
 http://download001.fshare.vn/dl/.../Your%Movie%2021.mp4
-```  
+```
+### vikv.**net**
+Encode `hdv-user` using `btoa` & `reverse` then send request to `vikv` backend.
+Download all `.ts` file & merge them back with `ffmpeg`.
 ### twist.moe
 Decrypt password from `JavaScript CryptoJS.AES` by implementing OpenSSL's [EVP BytesToKey](https://www.openssl.org/docs/crypto/EVP_BytesToKey.html).
-
-Run `download.sh` to search your anime:
-```bash
-download.sh
-```
-If anime is found, it will automatically download to this **repo**.
 ### freetutsdownload.**net**
 Get all `freetus` available courses with `keyword`:
 ```python
