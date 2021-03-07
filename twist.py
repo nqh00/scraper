@@ -30,7 +30,7 @@ def main(keyword):
 					title = anime['title']
 				else:
 					title = '%s - Season %s' % (anime['title'], anime['season'])
-				txt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, clean_filename(title))
+				txt_title = '%s\\__temp__\\anime\\%s.txt' % (abs_dirname, clean_filename(title))
 				os.system('echo %s' % (title))
 				request_episode(anime['slug']['slug'], txt_title)
 		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
@@ -39,7 +39,7 @@ def main(keyword):
 				alt_title = anime['alt_title']
 			else:
 				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
-			txt_alt_title = '%s\\__temp__\\%s.txt' % (abs_dirname, clean_filename(alt_title))
+			txt_alt_title = '%s\\__temp__\\anime\\%s.txt' % (abs_dirname, clean_filename(alt_title))
 			os.system('echo %s' % (alt_title))
 			request_episode(anime['slug']['slug'], txt_alt_title)
 	if not found:

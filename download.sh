@@ -30,18 +30,21 @@ if ! [[ -x "$(command -v aria2c)" ]]; then
 	exit 1;
 fi
 
-path="$PWD/__temp__"
+path="`dirname $0`\__temp__\anime"
 
 # Create temporary directory and temporary text file
 check_directory () {
-	if [ ! -d  $path ]; then
+	if [[ ! -d "`dirname $0`\__temp__" ]]; then
+		mkdir "`dirname $0`\__temp__"
+		attrib +h "`dirname $0`\__temp__"
+	elif [ ! -d  $path ]; then
 		mkdir $path
-		touch $path/temp.txt
+		touch $path\\temp.txt
 		attrib +h $path
-		attrib +h $path/temp.txt
-	elif [[ ! -d $path/temp.txt ]]; then
-		touch $path/temp.txt # this file for not raising `cat` exception: no file in directory
-		attrib +h $path/temp.txt
+		attrib +h $path\\temp.txt
+	elif [[ ! -d "$path\temp.txt" ]]; then
+		touch $path\\temp.txt # this file for not raising `cat` exception: no file in directory
+		attrib +h $path\\temp.txt
 	fi
 }
 
@@ -75,12 +78,12 @@ check_state () {
 
 # python execution
 run_python () {
-	clear
+	# clear
 	echo "Search for your anime:"
 	read -e anime && [[ "$anime" != "" ]] || exit 1
 	echo
 	stty -echo # Disable input
-	$python3x "$PWD/twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
+	$python3x "`dirname $0`\twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
 	stty echo # Re-enable input
 	echo
 }
@@ -90,14 +93,15 @@ download () {
 	# Space delimiter
 	IFS=' '
 	stty -echo
-	for file in $path/*.txt; do
+	for file in "$path/"*.txt; do
 		while read -r _ep _url; do
-			name=$(echo $file | cut -d'/' -f7 | cut -d'.' -f1) # Get the 7th & 1st element of the delimiter array
+			name=${file##*/} # Get the filename and its extension
+			name=${name%.txt} # Remove the extention
 			url=${_url%$'\r'} # Strip the `\r` from each line
-			echo "Downloading $name"
+			echo "Downloading $name Episode $_ep"
 			aria2c "$url" \
 				-o "$name Episode $_ep.mp4" \
-				--dir "$PWD/$name" \
+				--dir "`dirname $0`\\$name" \
 				--header="Referer: https://twist.moe/" \
 				--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
 				--file-allocation=none \
@@ -109,18 +113,19 @@ download () {
 	done
 	stty echo
 	read -p "Download has finished, press enter to exit."
+	rm "$path/"*.txt # Clean up
 	exit 1;
 }
 
 check_directory
 
-check_total_url "$(cat $path/*.txt | wc -l | xargs)"
+check_total_url "$(cat "$path/"*.txt | wc -l | xargs)"
 
 if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
 	download
 else
-	rm $path/*.txt # Clean up
+	rm "$path/"*.txt # Clean up
 	check_directory
-	check_total_url "$(cat $path/*.txt | wc -l | xargs)"
+	check_total_url "$(cat "$path/"*.txt | wc -l | xargs)"
 	download
 fi
