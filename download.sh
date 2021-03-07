@@ -30,21 +30,43 @@ if ! [[ -x "$(command -v aria2c)" ]]; then
 	exit 1;
 fi
 
-path="`dirname $0`\__temp__\anime"
+# Check `ffmpeg` condition
+if ! [[ -x "$(command -v ffmpeg)" ]]; then
+	read -p $'ffmpeg is NOT installed.\nVisit https://www.gyan.dev/ffmpeg/builds for more info.'
+	exit 1;
+fi
+
+# Set file path
+directory="`dirname $0`"
+if [[ $machine == "Linux" ]]; then
+	path="$directory/.temp/.anime"
+elif [[ $machine == "Windows" ]]; then
+	path="$directory\.temp\.anime"
+fi
 
 # Create temporary directory and temporary text file
 check_directory () {
-	if [[ ! -d "`dirname $0`\__temp__" ]]; then
-		mkdir "`dirname $0`\__temp__"
-		attrib +h "`dirname $0`\__temp__"
-	elif [ ! -d  $path ]; then
-		mkdir $path
-		touch $path\\temp.txt
-		attrib +h $path
-		attrib +h $path\\temp.txt
-	elif [[ ! -d "$path\temp.txt" ]]; then
-		touch $path\\temp.txt # this file for not raising `cat` exception: no file in directory
-		attrib +h $path\\temp.txt
+	if [[ $machine == "Linux" ]]; then
+		if [[ ! -d "$directory/.temp" ]]; then
+			mkdir "$directory/.temp"
+		fi
+		if [[ ! -d  "$path" ]]; then
+			mkdir "$path"
+		fi
+		if [[ ! -d  "$path/.txt" ]]; then
+			touch "$path/.txt" # this file is for not raising `cat` exception: no file directory 
+		fi
+	elif [[ $machine == "Windows" ]]; then
+		if [[ ! -d "$directory\.temp" ]]; then
+			mkdir "$directory\.temp"
+			attrib +h "$directory\.temp"
+		elif [ ! -d "$path" ]; then
+			mkdir "$path"
+			attrib +h "$path"
+		elif [[ ! -d "$path\.txt" ]]; then
+			touch "$path\.txt" # this file is for not raising `cat` exception: no file in directory
+			attrib +h "$path\.txt"
+		fi
 	fi
 }
 
@@ -78,12 +100,12 @@ check_state () {
 
 # python execution
 run_python () {
-	# clear
+	clear
 	echo "Search for your anime:"
 	read -e anime && [[ "$anime" != "" ]] || exit 1
 	echo
 	stty -echo # Disable input
-	$python3x "`dirname $0`\twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
+	$python3x "$directory/twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
 	stty echo # Re-enable input
 	echo
 }
@@ -101,13 +123,15 @@ download () {
 			echo "Downloading $name Episode $_ep"
 			aria2c "$url" \
 				-o "$name Episode $_ep.mp4" \
-				--dir "`dirname $0`\\$name" \
+				--dir "$directory/$name" \
 				--header="Referer: https://twist.moe/" \
 				--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
+				--download-result=hide \
 				--file-allocation=none \
 				--continue \
 				--always-resume \
-				--max-tries=0
+				--max-tries=0 \
+				--max-concurrent-downloads=10
 			clear
 		done < "$file"
 	done
@@ -129,3 +153,4 @@ else
 	check_total_url "$(cat "$path/"*.txt | wc -l | xargs)"
 	download
 fi
+echo $path

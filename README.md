@@ -19,7 +19,7 @@ git clone https://github.com/nqh00/scraper.git
 2. Then `cd` to `scraper`.
 3. Install all required dependencies with `pip`:
 ```batch
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 **Requirements**
  - [**CygWin**](https://cygwin.com/setup-x86_64.exe) or [Git Bash](https://github.com/git-for-windows/git/releases/latest)

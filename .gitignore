@@ -1,5 +1,5 @@
 # Ignore temporary folder
-__temp__
+.temp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
