@@ -3,37 +3,55 @@
 # Checking your operating system with enviroment uname
 unameOut="$(uname -s)"
 case "${unameOut}" in
-    Linux*)     machine=Linux;;
-    Darwin*)    machine=Mac;;
-    CYGWIN*)    machine=Windows;;
-    MINGW*)     machine=Windows;;
-    MSYS*)      machine=Windows;;
-    *)          machine="UNKNOWN:${unameOut}"
+	Linux*)     machine=Linux;;
+	Darwin*)    machine=Mac;;
+	CYGWIN*)    machine=Windows;;
+	MINGW*)     machine=Windows;;
+	MSYS*)      machine=Windows;;
+	*)          machine="UNKNOWN:${unameOut}"
 esac
 
 # Check `python` condition
-python3x="py -3"
-if [[ $machine != "Windows" ]]; then
-    if command -v python3 &>/dev/null; then
-        python3x="python3"
-    elif command -v python &>/dev/null; then
-        python3x="python"
-    else
-    	read -p $'Python is NOT installed.\nVisit https://www.python.org/downloads/ for more info.'
-    	exit 1;
-    fi
+if [[ $machine == "Linux" ]]; then
+	if command -v python3 &>/dev/null; then
+		python3x="python3"
+	elif command -v python &>/dev/null; then
+		python3x="python"
+	else
+		read -p "Python 3.X is NOT installed. Try to update your repositories."
+		exit 1;
+	fi
+elif [[ $machine == "Windows" ]]; then
+	if ! [[ -x "$(command -v py -3)" ]]; then
+		read -p $'Python 3.X is NOT installed.\nVisit https://www.python.org/downloads/ for more info.'
+		exit 1;
+	else
+		python3x="py -3"
+	fi
 fi
 
 # Check `aria2c` condition
 if ! [[ -x "$(command -v aria2c)" ]]; then
-	read -p $'aria2c is NOT installed.\nVisit https://github.com/aria2/aria2/releases/latest for more info.'
-	exit 1;
+	if [[ $machine == "Windows" ]]; then
+		read -p $'aria2c is NOT installed.\nVisit https://github.com/aria2/aria2/releases/latest for more info.'
+		exit 1;
+	fi
+	if [[ $machine == "Linux" ]]; then
+		read -p "Try this command: sudo apt-get install ffmpeg"
+		exit 1;
+	fi
 fi
 
 # Check `ffmpeg` condition
 if ! [[ -x "$(command -v ffmpeg)" ]]; then
-	read -p $'ffmpeg is NOT installed.\nVisit https://www.gyan.dev/ffmpeg/builds for more info.'
-	exit 1;
+	if [[ $machine == "Windows" ]]; then
+		read -p $'ffmpeg is NOT installed.\nVisit https://www.gyan.dev/ffmpeg/builds for more info.'
+		exit 1;
+	fi
+	if [[ $machine == "Linux" ]]; then
+		read -p "Try this command: sudo apt-get install aria2"
+		exit 1;
+	fi
 fi
 
 # Set file path
@@ -42,6 +60,9 @@ if [[ $machine == "Linux" ]]; then
 	path="$directory/.temp/.anime"
 elif [[ $machine == "Windows" ]]; then
 	path="$directory\.temp\.anime"
+else
+	read -p "Linux & Windows support only."
+	exit 1;
 fi
 
 # Create temporary directory and temporary text file
@@ -60,12 +81,14 @@ check_directory () {
 		if [[ ! -d "$directory\.temp" ]]; then
 			mkdir "$directory\.temp"
 			attrib +h "$directory\.temp"
-		elif [ ! -d "$path" ]; then
+		fi
+		if [ ! -d "$path" ]; then
 			mkdir "$path"
 			attrib +h "$path"
-		elif [[ ! -d "$path\.txt" ]]; then
-			touch "$path\.txt" # this file is for not raising `cat` exception: no file in directory
-			attrib +h "$path\.txt"
+		fi
+		if [[ ! -d "$path\temp.txt" ]]; then
+			touch "$path\temp.txt" # this file is for not raising `cat` exception: no file in directory
+			attrib +h "$path\temp.txt"
 		fi
 	fi
 }
@@ -92,9 +115,9 @@ check_total_url () {
 # Check downloading state
 check_state () {
 	read -p "Do you want to keep downloading [yes] or renew [no]: " confirm && [[ "$confirm" == [yY] \
-																	 	|| "$confirm" == [yY][eE][sS] \
-																	 	|| "$confirm" == [nN] \
-																	 	|| "$confirm" == [nN][oO] ]] \
+																		|| "$confirm" == [yY][eE][sS] \
+																		|| "$confirm" == [nN] \
+																		|| "$confirm" == [nN][oO] ]] \
 														|| exit 1 # Receive only 4 input yes, no, y, n case insensitive
 }
 
@@ -153,4 +176,3 @@ else
 	check_total_url "$(cat "$path/"*.txt | wc -l | xargs)"
 	download
 fi
-echo $path

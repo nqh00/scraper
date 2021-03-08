@@ -1,4 +1,5 @@
 import sys
+import os
 import base64
 import unicodedata
 import string
@@ -9,10 +10,10 @@ from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
 from http.client import HTTPSConnection
-from os import path
+from platform import system
 from subprocess import check_call
 
-abs_dirname = path.dirname(path.abspath(__file__))
+abs_dirname = os.path.dirname(os.path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
 payload = ''
 headers = {'X-Access-Token': '0df14814b9e590a1f26d3071a4ed7974'}
@@ -32,7 +33,7 @@ def main(keyword):
 				else:
 					title = '%s - Season %s' % (anime['title'], anime['season'])
 				txt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(title))
-				check_call('echo %s' % (title), executable='/bin/bash', shell=True)
+				bash_call(title)
 				request_episode(anime['slug']['slug'], txt_title)
 		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
 			found = True
@@ -41,10 +42,10 @@ def main(keyword):
 			else:
 				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
 			txt_alt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(alt_title))
-			check_call('echo %s' % (alt_title), executable='/bin/bash', shell=True)
+			bash_call(alt_title)
 			request_episode(anime['slug']['slug'], txt_alt_title)
 	if not found:
-		check_call('echo "There\'s no anime matching your \"%s\"!"' % (keyword), executable='/bin/bash', shell=True)
+		bash_call("There\'s no anime matching your \"%s\"!" % (keyword))
 		sys.exit(1) # Return value for bash
 
 
@@ -99,11 +100,11 @@ def request_episode(slug, textfile):
 	for episode in cryptoEpisode:
 		url = extract(episode['url'])
 		if url == 0:
-			check_call('echo "Episode %s: No links available!"'  % (episode['episode']), executable='/bin/bash', shell=True)
+			bash_call("Episode %s: No links available!"  % (episode['episode']))
 		else:
-			check_call('echo "Episode %s: %s"'  % (episode['episode'], url), executable='/bin/bash', shell=True)
+			bash_call("Episode %s: %s"  % (episode['episode'], url))
 			txt.write('%s %s\n'  % (episode['episode'], url))
-	check_call('echo', executable='/bin/bash', shell=True) # Space for each season
+	bash_call(None) # Space for each season
 	txt.close()
 
 """
@@ -145,6 +146,15 @@ def extract(source):
 	elif check_request('air-cdn.twist.moe', suffix):
 		return 'https://air-cdn.twist.moe%s' % (suffix)
 	return 0
+
+def bash_call(command):
+	if system() == "Linux":
+		check_call('echo %s' % (command), executable='/bin/bash', shell=True)
+	if system() == "Windows":
+		if command is None:
+			os.system('echo.')
+		else:
+			os.system('echo %s' % (command))
 
 if __name__ == "__main__":
 	main(sys.argv[1])

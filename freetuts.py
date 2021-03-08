@@ -1,6 +1,5 @@
 from requests import get
-from requests.utils import quote
-from requests.utils import unquote
+from requests.utils import (quote, unquote)
 from lxml import html
 
 course_link = {}
