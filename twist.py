@@ -45,7 +45,7 @@ def main(keyword):
 			bash_call(alt_title)
 			request_episode(anime['slug']['slug'], txt_alt_title)
 	if not found:
-		bash_call("There\'s no anime matching your \"%s\"!" % (keyword))
+		bash_call('There\'s no anime matching your %s!' % (keyword))
 		sys.exit(1) # Return value for bash
 
 

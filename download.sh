@@ -37,7 +37,7 @@ if ! [[ -x "$(command -v aria2c)" ]]; then
 		exit 1;
 	fi
 	if [[ $machine == "Linux" ]]; then
-		read -p "Try this command: sudo apt-get install ffmpeg"
+		read -p "Try this command: sudo apt-get install aria2"
 		exit 1;
 	fi
 fi
@@ -49,7 +49,7 @@ if ! [[ -x "$(command -v ffmpeg)" ]]; then
 		exit 1;
 	fi
 	if [[ $machine == "Linux" ]]; then
-		read -p "Try this command: sudo apt-get install aria2"
+		read -p "Try this command: sudo apt-get install ffmpeg"
 		exit 1;
 	fi
 fi
