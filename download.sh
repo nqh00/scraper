@@ -120,8 +120,9 @@ run_twist_python () {
 #Download URL with concurrent threading, always continue download
 download_feature() {
 	stty -echo # Disable input
+	echo "Downloading $1"
 	aria2c -i "$feature_path/$1.txt" \
-		--download-result=hide \
+		--quiet \
 		--file-allocation=none \
 		--continue \
 		--always-resume \
