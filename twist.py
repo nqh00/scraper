@@ -149,7 +149,10 @@ def extract(source):
 
 def bash_call(command):
 	if system() == "Linux":
-		check_call('echo %s' % (command), executable='/bin/bash', shell=True)
+		if command is None:
+			check_call('echo', executable='/bin/bash', shell=True)
+		else:
+			check_call('echo "%s"' % (command), executable='/bin/bash', shell=True)
 	if system() == "Windows":
 		if command is None:
 			os.system('echo.')
