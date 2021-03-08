@@ -22,31 +22,35 @@ json = {}
 # This method search your keyword and return all available anime with following media link
 def main(keyword):
 	response = get('https://api.twist.moe/api/anime')
-	json = response.json()
-	found = False
-	for anime in json:
-		if anime['alt_title'] is None:
-			if check_keyword(keyword, anime['title']):
+	try:
+		json = response.json()
+		found = False
+		for anime in json:
+			if anime['alt_title'] is None:
+				if check_keyword(keyword, anime['title']):
+					found = True
+					if anime['season'] == 0:
+						title = anime['title']
+					else:
+						title = '%s - Season %s' % (anime['title'], anime['season'])
+					txt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(title))
+					bash_call(title)
+					request_episode(anime['slug']['slug'], txt_title)
+			elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
 				found = True
 				if anime['season'] == 0:
-					title = anime['title']
+					alt_title = anime['alt_title']
 				else:
-					title = '%s - Season %s' % (anime['title'], anime['season'])
-				txt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(title))
-				bash_call(title)
-				request_episode(anime['slug']['slug'], txt_title)
-		elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
-			found = True
-			if anime['season'] == 0:
-				alt_title = anime['alt_title']
-			else:
-				alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
-			txt_alt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(alt_title))
-			bash_call(alt_title)
-			request_episode(anime['slug']['slug'], txt_alt_title)
-	if not found:
-		bash_call('There\'s no anime matching your %s!' % (keyword))
-		sys.exit(1) # Return value for bash
+					alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
+				txt_alt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(alt_title))
+				bash_call(alt_title)
+				request_episode(anime['slug']['slug'], txt_alt_title)
+		if not found:
+			print('There\'s no anime matching your %s!' % (keyword))
+			sys.exit(1) # Return value for bash
+	except JSONDecodeError:
+		print("Service Temporarily Unavailable.")
+		sys.exit(2) # Return value for bash
 
 
 # This method check if keyword and title shares the similar

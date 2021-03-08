@@ -19,12 +19,12 @@ if [[ $machine == "Linux" ]]; then
 		python3x="python"
 	else
 		read -p "Python 3.X is NOT installed. Try to update your repositories."
-		exit 1;
+		exit 2;
 	fi
 elif [[ $machine == "Windows" ]]; then
 	if ! [[ -x "$(command -v py -3)" ]]; then
 		read -p $'Python 3.X is NOT installed.\nVisit https://www.python.org/downloads/ for more info.'
-		exit 1;
+		exit 2;
 	else
 		python3x="py -3"
 	fi
@@ -34,11 +34,11 @@ fi
 if ! [[ -x "$(command -v aria2c)" ]]; then
 	if [[ $machine == "Windows" ]]; then
 		read -p $'aria2c is NOT installed.\nVisit https://github.com/aria2/aria2/releases/latest for more info.'
-		exit 1;
+		exit 2;
 	fi
 	if [[ $machine == "Linux" ]]; then
 		read -p "Try this command: sudo apt-get install aria2"
-		exit 1;
+		exit 2;
 	fi
 fi
 
@@ -46,133 +46,222 @@ fi
 if ! [[ -x "$(command -v ffmpeg)" ]]; then
 	if [[ $machine == "Windows" ]]; then
 		read -p $'ffmpeg is NOT installed.\nVisit https://www.gyan.dev/ffmpeg/builds for more info.'
-		exit 1;
+		exit 2;
 	fi
 	if [[ $machine == "Linux" ]]; then
 		read -p "Try this command: sudo apt-get install ffmpeg"
-		exit 1;
+		exit 2;
 	fi
 fi
 
 # Set file path
+promt_statement='Choose your movie type: '
 directory="`dirname $0`"
 if [[ $machine == "Linux" ]]; then
-	path="$directory/.temp/.anime"
+	feature_path="$directory/.temp/.feature"
+	anime_path="$directory/.temp/.anime"
 elif [[ $machine == "Windows" ]]; then
-	path="$directory\.temp\.anime"
+	feature_path="$directory\.temp\.feature"
+	anime_path="$directory\.temp\.anime"
 else
 	read -p "Linux & Windows support only."
-	exit 1;
+	exit 2;
 fi
 
-# Create temporary directory and temporary text file
+# Create necessary temporary directory
 check_directory () {
 	if [[ $machine == "Linux" ]]; then
 		if [[ ! -d "$directory/.temp" ]]; then
 			mkdir "$directory/.temp"
 		fi
-		if [[ ! -d  "$path" ]]; then
-			mkdir "$path"
+		if [[ ! -d  "$anime_path" ]]; then
+			mkdir "$anime_path"
 		fi
-		if [[ ! -d  "$path/.txt" ]]; then
-			touch "$path/.txt" # this file is for not raising `cat` exception: no file directory 
+		if [[ ! -d  "$feature_path" ]]; then
+			mkdir "$feature_path" 
 		fi
 	elif [[ $machine == "Windows" ]]; then
 		if [[ ! -d "$directory\.temp" ]]; then
 			mkdir "$directory\.temp"
 			attrib +h "$directory\.temp"
 		fi
-		if [ ! -d "$path" ]; then
-			mkdir "$path"
-			attrib +h "$path"
+		if [ ! -d "$anime_path" ]; then
+			mkdir "$anime_path"
+			attrib +h "$anime_path"
 		fi
-		if [[ ! -d "$path\temp.txt" ]]; then
-			touch "$path\temp.txt" # this file is for not raising `cat` exception: no file in directory
-			attrib +h "$path\temp.txt"
+		if [[ ! -d "$feature_path" ]]; then
+			mkdir "$feature_path"
+			attrib +h "$feature_path"
 		fi
 	fi
-}
-
-# Check total url in all text file
-check_total_url () {
-	if [[ "$1" -eq "0" ]]; then
-		run_python
-		if [[ "$found" -eq "1" ]]; then
-			echo
-			read -p "Press enter to exit and try another keyword."
-			exit 1;
-		fi
-		confirm="yes"
-	elif [[ "$1" -eq "1" ]]; then
-		echo "There are only 1 URL in queue waiting for download."
-		check_state
-	else
-		echo "There are total $1 episodes in queue waiting for download."
-		check_state
-	fi
-}
-
-# Check downloading state
-check_state () {
-	read -p "Do you want to keep downloading [yes] or renew [no]: " confirm && [[ "$confirm" == [yY] \
-																		|| "$confirm" == [yY][eE][sS] \
-																		|| "$confirm" == [nN] \
-																		|| "$confirm" == [nN][oO] ]] \
-														|| exit 1 # Receive only 4 input yes, no, y, n case insensitive
 }
 
 # python execution
-run_python () {
+run_vikv_python () {
+	clear
+	echo "Search your feature movie:"
+	read -e feature && [[ "$feature" != "" ]] || exit 1
+	echo
+	stty -echo # Disable input
+	$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
+	stty echo # Re-enable input
+}
+
+run_twist_python () {
 	clear
 	echo "Search for your anime:"
 	read -e anime && [[ "$anime" != "" ]] || exit 1
 	echo
 	stty -echo # Disable input
-	$python3x "$directory/twist.py" "$anime"; found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
+	$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
 	stty echo # Re-enable input
-	echo
 }
 
-# Download all available URL
-download () {
-	# Space delimiter
-	IFS=' '
+#Download URL with concurrent threading, always continue download
+download_feature() {
 	stty -echo
-	for file in "$path/"*.txt; do
+	aria2c -i "$feature_path/$1.txt" \
+		--download-result=hide \
+		--file-allocation=none \
+		--continue \
+		--always-resume \
+		--max-tries=3 \
+		--max-concurrent-downloads=10
+	clear
+	merge_ts "$1" "$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)"
+	stty echo
+}
+
+# Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
+download_anime() {
+	stty -echo
+	for file in "$anime_path/$1.txt"; do
 		while read -r _ep _url; do
-			name=${file##*/} # Get the filename and its extension
-			name=${name%.txt} # Remove the extention
 			url=${_url%$'\r'} # Strip the `\r` from each line
-			echo "Downloading $name Episode $_ep"
+			echo "Downloading $1 Episode $url"
 			aria2c "$url" \
-				-o "$name Episode $_ep.mp4" \
-				--dir "$directory/$name" \
+				-o "$1 Episode $_ep.mp4" \
+				--dir "$directory/$1" \
 				--header="Referer: https://twist.moe/" \
 				--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
 				--download-result=hide \
 				--file-allocation=none \
 				--continue \
 				--always-resume \
-				--max-tries=0 \
-				--max-concurrent-downloads=10
+				--max-tries=0
 			clear
 		done < "$file"
 	done
 	stty echo
-	read -p "Download has finished, press enter to exit."
-	rm "$path/"*.txt # Clean up
-	exit 1;
 }
 
+# Merge all ts file with ffmpeg
+merge_ts () {
+	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts"
+	ffmpeg -i "$2\\$1.ts" -vcodec copy -acodec copy "$2\\$1.mp4"
+	rm "$2/"*.ts
+}
+
+# Managing all transport stream file
+controller_feature () {
+	LIST=("Search for feature movie")
+	for file in "$feature_path/"*.txt; do
+		name=${file##*/} # Get the filename and its extension
+		name=${name%.txt} # Strip the extention
+		if [[ $name != "*" ]]; then # '*' means there is no txt file
+			LIST+=("$name")
+		fi
+	done
+
+	clear
+	PS3='Choose your movie: '
+	LIST+=("Exit")
+	select _feature in "${LIST[@]}"; do
+		for _choice in "${LIST[@]}"; do
+			if [[ $_choice == $_feature ]]; then
+				if [[ $_choice == "Exit" ]]; then
+					break 2
+				elif [[ $_choice == "Search for feature movie" ]]; then
+					run_vikv_python
+					if [[ $feature_found -eq "1" ]]; then
+						read -p "Please try another keyword."
+					elif [[ $feature_found -eq "2" ]]; then
+						read -p "We will update this movie in the future."
+					else
+						read -p "Your movie library has been updated."
+					fi
+					break 2
+				else
+					download_feature "$_feature"
+					read -p "Download has been finished."
+					break 2
+				fi
+			fi
+		done
+	done
+	clear
+	PS3="$promt_statement"
+}
+
+# Managing all anime episode
+controller_anime () {
+	LIST=("Search for anime")
+	IFS=' ' # Space delimiter
+	for file in "$anime_path/"*.txt; do
+		name=${file##*/} # Get the filename and its extension
+		name=${name%.txt} # Strip the extention
+		if [[ $name != "*" ]]; then # '*' means there is no txt file
+			LIST+=("$name")
+		fi
+	done
+
+	clear
+	PS3='Choose your anime: '
+	LIST+=("Exit")
+	select _anime in "${LIST[@]}"; do
+		for _choice in "${LIST[@]}"; do
+			if [[ $_choice == $_anime ]]; then
+				if [[ $_choice == "Exit" ]]; then
+					break 3
+				elif [[ $_choice == "Search for anime" ]]; then
+					run_twist_python
+					if [[ $anime_found -eq "1" ]]; then
+						read -p "Please try another keyword."
+					elif [[ $anime_found -eq "2" ]]; then
+						read -p "Please try again later."
+					else
+						read -p "Your anime library has been updated."
+					fi
+					break 2
+				else
+					download_anime
+					read -p "Download has been finished."
+					break 2
+				fi
+			fi
+		done
+	done
+	clear
+	PS3="$promt_statement"
+}
+
+# Using Prompt statement
+PS3="$promt_statement"
+movies=("Feature movie" "Anime" "Exit")
 check_directory
-
-check_total_url "$(cat "$path/"*.txt | wc -l | xargs)"
-
-if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
-	download
-else
-	rm "$path/"*.txt # Clean up
-	check_directory
-	check_total_url "$(cat "$path/"*.txt | wc -l | xargs)"
-	download
-fi
+select movie in "${movies[@]}"; do
+	case $movie in
+		"Feature movie")
+			controller_feature
+			;;
+		"Anime")
+			controller_anime
+			;;
+		"Exit")
+			exit
+			;;
+		*)
+			read -p "Option $REPLY is invalid."
+			clear
+	esac
+done

@@ -29,6 +29,7 @@ def imdb_search(keyword):
 				pass
 	except KeyError:
 		print('There is no movie matching your "%s".' % (keyword))
+		sys.exit(1) # Return value for bash
 
 def m3u8_request(keyword):
 	found = False
@@ -36,19 +37,28 @@ def m3u8_request(keyword):
 		if check_database(imdb['id']):
 			response = get('https://hls.hdv.fun/imdb/%s' % (imdb['id']))
 			regex = findall(r'"name": "([a-zA-Z0-9]{11})", "quality": "([a-zA-Z]{0,})", "res": ([0-9]{,4})', response.text)
-			m3u8(clean_filename(imdb['name']), 'https://hls.hdv.fun/m3u8/%s.m3u8?u=%s' % (regex[0][0], query_parameter()))
-			print(clean_moviename(clean_filename(imdb['name']), imdb['year'], regex[0][1], regex[0][2]))
+			m3u8(	clean_filename(imdb['name']),
+					clean_moviename(
+						clean_filename(imdb['name']),
+						imdb['year'],
+						regex[0][1],
+						regex[0][2]
+						),
+					'https://hls.hdv.fun/m3u8/%s.m3u8?u=%s' % (regex[0][0], query_parameter()
+					)
+				)
 			found = True
 	if not found:
 		print('There is no movie matching your "%s" in our database.' % (keyword))
+		sys.exit(2) # Return value for bash
 
-def m3u8(name, url):
+def m3u8(foldername, filename, url):
 	response = get(url)
-	txt = open('%s\\__temp__\\feature\\%s.txt' % (abs_dirname, name), 'w+')
+	txt = open('%s\\.temp\\.feature\\%s.txt' % (abs_dirname, filename), 'w+')
 	count = 0
 	for line in response.text.splitlines():
 		if 'https' in line:
-			txt.write('%s\n dir=%s\\%s\n out=%s.ts\n' % (line, abs_dirname, name, count))
+			txt.write('%s\n dir=%s\\%s\n out=%s.ts\n' % (line, abs_dirname, foldername, count))
 			count = count + 1
 	txt.close()
 
