@@ -119,7 +119,7 @@ run_twist_python () {
 
 #Download URL with concurrent threading, always continue download
 download_feature() {
-	stty -echo
+	stty -echo # Disable input
 	aria2c -i "$feature_path/$1.txt" \
 		--download-result=hide \
 		--file-allocation=none \
@@ -128,36 +128,35 @@ download_feature() {
 		--max-tries=3 \
 		--max-concurrent-downloads=10
 	clear
-	merge_ts "$1" "$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)"
-	stty echo
+	merge_ts "$1" "$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
+	stty echo # Re-enable input
 }
 
 # Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
 download_anime() {
-	stty -echo
-	for file in "$anime_path/$1.txt"; do
-		while read -r _ep _url; do
-			url=${_url%$'\r'} # Strip the `\r` from each line
-			echo "Downloading $1 Episode $url"
-			aria2c "$url" \
-				-o "$1 Episode $_ep.mp4" \
-				--dir "$directory/$1" \
-				--header="Referer: https://twist.moe/" \
-				--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
-				--download-result=hide \
-				--file-allocation=none \
-				--continue \
-				--always-resume \
-				--max-tries=0
-			clear
-		done < "$file"
-	done
-	stty echo
+	stty -echo # Disable input
+	IFS=' ' # Space delimiter
+	while read -r _ep _url; do
+		url=${_url%$'\r'} # Strip the `\r` from each line
+		echo "Downloading $1 Episode $_ep"
+		aria2c "$url" \
+			-o "$1 Episode $_ep.mp4" \
+			--dir "$directory/$1" \
+			--header="Referer: https://twist.moe/" \
+			--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
+			--download-result=hide \
+			--file-allocation=none \
+			--continue \
+			--always-resume \
+			--max-tries=0
+		clear
+	done < "$anime_path/$1.txt"
+	stty echo # Re-enable input
 }
 
 # Merge all ts file with ffmpeg
 merge_ts () {
-	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts"
+	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts" # Cat all sorted ts file into one
 	ffmpeg -i "$2\\$1.ts" -vcodec copy -acodec copy "$2\\$1.mp4"
 	rm "$2/"*.ts
 }
@@ -206,7 +205,6 @@ controller_feature () {
 # Managing all anime episode
 controller_anime () {
 	LIST=("Search for anime")
-	IFS=' ' # Space delimiter
 	for file in "$anime_path/"*.txt; do
 		name=${file##*/} # Get the filename and its extension
 		name=${name%.txt} # Strip the extention
@@ -234,7 +232,7 @@ controller_anime () {
 					fi
 					break 2
 				else
-					download_anime
+					download_anime "$_anime"
 					read -p "Download has been finished."
 					break 2
 				fi
