@@ -69,11 +69,15 @@ def check_request(host, suffix):
 	headers = {
 	  'Referer': 'https://twist.moe/'
 	}
-	conn.request("HEAD", suffix, payload, headers)
-	res = conn.getresponse()
-	if res.status == 200:
-		return True
-	return False
+	try:
+		conn.request("HEAD", suffix, payload, headers)
+		res = conn.getresponse()
+		if res.status == 200:
+			return True
+		return False
+	except ConnectionRefusedError:
+		print("CDN Streaming Service Temporarily Unavailable.")
+		sys.exit(2)
 
 """
 Make sure the string is a valid file name

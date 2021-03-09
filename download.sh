@@ -54,7 +54,7 @@ if ! [[ -x "$(command -v ffmpeg)" ]]; then
 	fi
 fi
 
-# Set file path
+# Instantiate file path
 promt_statement='Choose your movie type: '
 directory="`dirname $0`"
 if [[ $machine == "Linux" ]]; then
@@ -96,28 +96,33 @@ check_directory () {
 	fi
 }
 
-# python execution
+# Python execution
 run_vikv_python () {
 	clear
 	echo "Search your feature movie:"
-	read -e feature && [[ "$feature" != "" ]] || exit 1
+	read -e feature
 	echo
 	stty -echo # Disable input
-	$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
+	if [[ ! -z "$feature" ]]; then # Null input check
+		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
+	fi
 	stty echo # Re-enable input
 }
 
+# Python execution
 run_twist_python () {
 	clear
 	echo "Search for your anime:"
-	read -e anime && [[ "$anime" != "" ]] || exit 1
+	read -e anime
 	echo
 	stty -echo # Disable input
-	$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
+	if [[ ! -z "$anime" ]]; then # Null input check
+		$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
+	fi
 	stty echo # Re-enable input
 }
 
-#Download URL with concurrent threading, always continue download
+# Download URL with concurrent threading, always continue download
 download_feature() {
 	stty -echo # Disable input
 	echo "Downloading $1"
@@ -137,28 +142,6 @@ download_feature() {
 	stty echo # Re-enable input
 }
 
-# Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
-download_anime() {
-	stty -echo # Disable input
-	IFS=' ' # Space delimiter
-	while read -r _ep _url; do
-		url=${_url%$'\r'} # Strip the `\r` from each line
-		echo "Downloading $1 Episode $_ep"
-		aria2c "$url" \
-			-o "$1 Episode $_ep.mp4" \
-			--dir "$directory/$1" \
-			--header="Referer: https://twist.moe/" \
-			--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
-			--download-result=hide \
-			--file-allocation=none \
-			--continue \
-			--always-resume \
-			--max-tries=0
-		clear
-	done < "$anime_path/$1.txt"
-	stty echo # Re-enable input
-}
-
 # Merge all ts file with ffmpeg
 merge_ts () {
 	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts"
@@ -166,28 +149,71 @@ merge_ts () {
 	rm "$2/"*.ts
 }
 
+# Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
+download_anime() {
+	aria2c "$2" \
+		-o "$1 Episode $3.mp4" \
+		--dir "$directory/$1" \
+		--header="Referer: https://twist.moe/" \
+		--header="User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36" \
+		--download-result=hide \
+		--file-allocation=none \
+		--continue \
+		--always-resume \
+		--max-tries=0
+}
+
+# Download all anime episodes
+download_anime_all () {
+	stty -echo # Disable input
+	IFS=' ' # Space delimiter
+	while read -r _ep _url; do
+		url=${_url%$'\r'} # Strip the `\r` from each line
+		echo "Downloading $1 Episode $_ep"
+		download_anime "$1" "$url" "$_ep"
+		clear
+	done < "$anime_path/$1.txt"
+	stty echo # Re-enable input
+}
+
+download_anime_each () {
+	stty -echo # Disable input
+	IFS=' ' # Space delimiter
+	while read -r _ep _url; do
+		if [[ $_ep -eq "$2" ]]; then
+			url=${_url%$'\r'} # Strip the `\r` from each line
+			echo "Downloading $1 Episode $2"
+			download_anime "$1" "$url" "$2"
+		fi
+		clear
+	done < "$anime_path/$1.txt"
+	stty echo # Re-enable input
+}
+
 # Managing all transport stream file
 controller_feature () {
-	LIST=("Search for feature movie")
+	list=("Search for feature movie")
 	for file in "$feature_path/"*.txt; do
 		name=${file##*/} # Get the filename and its extension
 		name=${name%.txt} # Strip the extention
 		if [[ $name != "*" ]]; then # '*' means there is no txt file
-			LIST+=("$name")
+			list+=("$name")
 		fi
 	done
 
 	clear
 	PS3='Choose your movie: '
-	LIST+=("Exit")
-	select _feature in "${LIST[@]}"; do
-		for _choice in "${LIST[@]}"; do
+	list+=("Exit")
+	select _feature in "${list[@]}"; do
+		for _choice in "${list[@]}"; do
 			if [[ $_choice == $_feature ]]; then
 				if [[ $_choice == "Exit" ]]; then
 					break 2
 				elif [[ $_choice == "Search for feature movie" ]]; then
 					run_vikv_python
-					if [[ $feature_found -eq "1" ]]; then
+					if [[ -z "$feature" ]]; then
+						break 2
+					elif [[ $feature_found -eq "1" ]]; then
 						read -p "Please try another keyword."
 					elif [[ $feature_found -eq "2" ]]; then
 						read -p "We will update this movie in the future."
@@ -207,28 +233,58 @@ controller_feature () {
 	PS3="$promt_statement"
 }
 
+controller_anime_episodes () {
+	PS3="Choose your episode:"
+	episodes=("All of episodes")
+	while read -r __ep __url; do
+		IFS=' ' # Space delimiter
+		episodes+=("Episode $__ep")
+	done < "$anime_path/$1.txt"
+	episodes+=("Exit")
+	PS3="Choose your episode: "
+	select _ep in "${episodes[@]}"; do
+		for _choice in "${episodes[@]}"; do
+			if [[ $_choice == $_ep ]]; then
+				if [[ $_choice == "Exit" ]]; then
+					break 3
+				elif [[ $_choice == "All of episodes" ]]; then
+					download_anime_all "$1"
+					read -p "Your anime has downloaded and saved in \"$1\"."
+					break 2
+				else
+					download_anime_each "$1" "$(echo $_choice | cut -d' ' -f2)"
+					read -p "Your episode has downloaded and saved in \"$1\"."
+					break 2
+				fi
+			fi
+		done
+	done
+}
+
 # Managing all anime episode
 controller_anime () {
-	LIST=("Search for anime")
+	list=("Search for anime")
 	for file in "$anime_path/"*.txt; do
 		name=${file##*/} # Get the filename and its extension
 		name=${name%.txt} # Strip the extention
 		if [[ $name != "*" ]]; then # '*' means there is no txt file
-			LIST+=("$name")
+			list+=("$name")
 		fi
 	done
 
 	clear
 	PS3='Choose your anime: '
-	LIST+=("Exit")
-	select _anime in "${LIST[@]}"; do
-		for _choice in "${LIST[@]}"; do
+	list+=("Exit")
+	select _anime in "${list[@]}"; do
+		for _choice in "${list[@]}"; do
 			if [[ $_choice == $_anime ]]; then
 				if [[ $_choice == "Exit" ]]; then
 					break 3
 				elif [[ $_choice == "Search for anime" ]]; then
 					run_twist_python
-					if [[ $anime_found -eq "1" ]]; then
+					if [[ -z "$anime" ]]; then
+						break 2
+					elif [[ $anime_found -eq "1" ]]; then
 						read -p "Please try another keyword."
 					elif [[ $anime_found -eq "2" ]]; then
 						read -p "Please try again later."
@@ -237,8 +293,7 @@ controller_anime () {
 					fi
 					break 2
 				else
-					download_anime "$_anime"
-					read -p "Your anime has downloaded and saved in \"$_anime\"."
+					controller_anime_episodes "$_anime"
 					break 2
 				fi
 			fi
