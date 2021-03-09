@@ -85,7 +85,7 @@ check_directory () {
 			mkdir "$directory\.temp"
 			attrib +h "$directory\.temp"
 		fi
-		if [ ! -d "$anime_path" ]; then
+		if [[ ! -d "$anime_path" ]]; then
 			mkdir "$anime_path"
 			attrib +h "$anime_path"
 		fi
@@ -121,15 +121,19 @@ run_twist_python () {
 download_feature() {
 	stty -echo # Disable input
 	echo "Downloading $1"
-	aria2c -i "$feature_path/$1.txt" \
-		--quiet \
-		--file-allocation=none \
-		--continue \
-		--always-resume \
-		--max-tries=3 \
-		--max-concurrent-downloads=10
-	clear
-	merge_ts "$1" "$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
+	folder="$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
+	
+	if [[ ! -f "$folder/$1.mp4" ]]; then
+		aria2c -i "$feature_path/$1.txt" \
+			--quiet \
+			--file-allocation=none \
+			--continue \
+			--always-resume \
+			--max-tries=3 \
+			--max-concurrent-downloads=10
+		clear
+		merge_ts "$1" "$folder"
+	fi
 	stty echo # Re-enable input
 }
 
@@ -157,8 +161,8 @@ download_anime() {
 
 # Merge all ts file with ffmpeg
 merge_ts () {
-	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts" # Cat all sorted ts file into one
-	ffmpeg -i "$2\\$1.ts" -vcodec copy -acodec copy "$2\\$1.mp4"
+	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts"
+	ffmpeg -y -i "$2\\$1.ts" -vcodec copy -acodec copy "$2\\$1.mp4"
 	rm "$2/"*.ts
 }
 
@@ -193,7 +197,7 @@ controller_feature () {
 					break 2
 				else
 					download_feature "$_feature"
-					read -p "Download has been finished."
+					read -p "Your movie has downloaded and saved in $folder."
 					break 2
 				fi
 			fi
@@ -234,7 +238,7 @@ controller_anime () {
 					break 2
 				else
 					download_anime "$_anime"
-					read -p "Download has been finished."
+					read -p "Your anime has downloaded and saved in \"$_anime\"."
 					break 2
 				fi
 			fi
