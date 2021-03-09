@@ -54,11 +54,11 @@ def m3u8_request(keyword):
 
 def m3u8(foldername, filename, url):
 	response = get(url)
-	txt = open('%s\\.temp\\.feature\\%s.txt' % (abs_dirname, filename), 'w+')
+	txt = open('%s/.temp/.feature/%s.txt' % (abs_dirname, filename), 'w+')
 	count = 0
 	for line in response.text.splitlines():
 		if 'https' in line:
-			txt.write('%s\n dir=%s\\%s\n out=%s.ts\n' % (line, abs_dirname, foldername, count))
+			txt.write('%s\n dir=%s/%s\n out=%s.ts\n' % (line, abs_dirname, foldername, count))
 			count = count + 1
 	txt.close()
 

@@ -123,11 +123,11 @@ run_twist_python () {
 }
 
 # Download URL with concurrent threading, always continue download
-download_feature() {
+download_feature () {
 	stty -echo # Disable input
 	echo "Downloading $1"
 	folder="$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
-	
+
 	if [[ ! -f "$folder/$1.mp4" ]]; then
 		aria2c -i "$feature_path/$1.txt" \
 			--quiet \
@@ -137,20 +137,22 @@ download_feature() {
 			--max-tries=3 \
 			--max-concurrent-downloads=10
 		clear
+		sleep 1m
 		merge_ts "$1" "$folder"
+		clear
 	fi
 	stty echo # Re-enable input
 }
 
 # Merge all ts file with ffmpeg
 merge_ts () {
-	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2\\$1.ts"
-	ffmpeg -y -i "$2\\$1.ts" -vcodec copy -acodec copy "$2\\$1.mp4"
-	rm "$2/"*.ts
+	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2/$1.ts"
+	ffmpeg -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
+	echo "$2/"*.ts
 }
 
 # Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
-download_anime() {
+download_anime () {
 	aria2c "$2" \
 		-o "$1 Episode $3.mp4" \
 		--dir "$directory/$1" \
@@ -176,6 +178,7 @@ download_anime_all () {
 	stty echo # Re-enable input
 }
 
+# Download single anime episode
 download_anime_each () {
 	stty -echo # Disable input
 	IFS=' ' # Space delimiter
@@ -190,7 +193,7 @@ download_anime_each () {
 	stty echo # Re-enable input
 }
 
-# Managing all transport stream file
+# Managing all feature movie
 controller_feature () {
 	list=("Search for feature movie")
 	for file in "$feature_path/"*.txt; do
@@ -233,7 +236,9 @@ controller_feature () {
 	PS3="$promt_statement"
 }
 
+# Managing all anime episodes
 controller_anime_episodes () {
+	clear
 	PS3="Choose your episode:"
 	episodes=("All of episodes")
 	while read -r __ep __url; do
@@ -261,7 +266,7 @@ controller_anime_episodes () {
 	done
 }
 
-# Managing all anime episode
+# Managing all anime
 controller_anime () {
 	list=("Search for anime")
 	for file in "$anime_path/"*.txt; do
