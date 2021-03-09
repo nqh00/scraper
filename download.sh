@@ -101,11 +101,12 @@ run_vikv_python () {
 	clear
 	echo "Search your feature movie:"
 	read -e feature
-	echo
+	clear
 	stty -echo # Disable input
 	if [[ ! -z "$feature" ]]; then # Null input check
 		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
 	fi
+	echo
 	stty echo # Re-enable input
 }
 
@@ -114,11 +115,12 @@ run_twist_python () {
 	clear
 	echo "Search for your anime:"
 	read -e anime
-	echo
+	clear
 	stty -echo # Disable input
 	if [[ ! -z "$anime" ]]; then # Null input check
 		$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
 	fi
+	echo
 	stty echo # Re-enable input
 }
 

@@ -56,7 +56,7 @@ def main(keyword):
 # This method check if keyword and title shares the similar
 def check_keyword(keyword, title):
 	keywords = keyword.lower().split(' ')
-	title = title.lower()
+	title = clean_filename(title.lower())
 	for word in keywords:
 		if not word in title:
 			return False
@@ -103,6 +103,7 @@ def request_episode(slug, textfile):
 			cryptoEpisode.append({'episode': src['number'], 'url': src['source']})
 	except JSONDecodeError:
 		print('Fails to connect to server!')
+		sys.exit(2)
 
 	txt = open(textfile, 'w')
 	for episode in cryptoEpisode:
@@ -155,6 +156,7 @@ def extract(source):
 		return 'https://air-cdn.twist.moe%s' % (suffix)
 	return 0
 
+# This method determine system platform and execute bash script
 def bash_call(command):
 	if system() == "Linux":
 		if command is None:
