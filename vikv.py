@@ -9,6 +9,7 @@ from random import choice
 from string import ascii_letters
 from base64 import b64encode
 from unicodedata import normalize
+from subprocess import check_call
 from platform import system
 from json import loads
 
@@ -42,9 +43,10 @@ def m3u8_request(keyword):
 	for imdb in imdb_list:
 		if check_database(imdb['id']):
 			found = True
-			bash_call("%s - %s" % (imdb['name'], imdb['year']))
 			response = get('https://hls.hdv.fun/imdb/%s' % (imdb['id']))
 			regex = findall(r'var [h.?s]d=\[{"dislike": [0-9]{0,3}, "fid": ([0-9]{0,10})(?:.+?)"name": "([a-zA-Z0-9]{0,15})", "quality": "([a-zA-Z]{0,10})", "res": ([0-9]{0,4})', response.text)
+			m3u8_query_parameter = query_parameter(regex[0][1])
+			bash_call("%s - %s\n" % (imdb['name'], imdb['year']))
 			foldername = clean_filename(imdb['name'])
 			moviename = clean_moviename(
 				foldername,
@@ -52,7 +54,7 @@ def m3u8_request(keyword):
 				regex[0][2],
 				regex[0][3]
 			)
-			m3u8(foldername, moviename, 'https://hls.hdv.fun/m3u8/%s.m3u8?u=%s' % (regex[0][1], query_parameter()))
+			m3u8(foldername, moviename, m3u8_query_parameter)
 			sub_regex = findall(r'var sub=[^\n]*', response.text)
 			sub = loads(sub_regex[0][8:])
 			subtitle = {}
@@ -98,6 +100,7 @@ def m3u8_request(keyword):
 def m3u8(foldername, filename, url):
 	response = get(url)
 	txt = open('%s/.temp/.feature/%s.txt' % (abs_dirname, filename), 'w+')
+	txt.write('# %s\n' % (url))
 	count = 0
 	for line in response.text.splitlines():
 		if 'https' in line:
@@ -154,7 +157,7 @@ This method extract from javascript of the website.
 It encode the cookie with base64 and reverse the string.
 Use it as query parameter to send request.
 """
-def query_parameter():
+def query_parameter(name):
 	# Append 10 random char to the cookie hdv_user
 	rand = ('%s%s' % (''.join(choice(ascii_letters) for i in range(10)), HDV_USER))
 	# Reverse string
@@ -162,7 +165,7 @@ def query_parameter():
 	# Base64 encode
 	btoa = b64encode(rand.encode('ascii'))
 	# Base 64 encode reverse string
-	return b64encode(btoa[::-1]).decode('ascii')
+	return "https://hls.hdv.fun/m3u8/%s.m3u8?u=%s" % (name, b64encode(btoa[::-1]).decode('ascii'))
 
 # This method determine system platform and execute bash script
 def bash_call(command):
