@@ -204,7 +204,7 @@ watch_download_anime () {
 		fi
 	done < "$anime_path/$1.txt"
 	if [[ "$3" == "watch" ]]; then
-		ffplay -fs -i "$url" -headers "Referer: https://twist.moe/"
+		ffplay -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -fs -i "$url" -headers "Referer: https://twist.moe/"
 	elif [[ "$3" == "down" ]]; then
 		echo "Downloading $1 Episode $2"
 		download_anime "$1" "$url" "$2"
@@ -394,6 +394,7 @@ select movie in "${movies[@]}"; do
 			controller_anime
 			;;
 		"Exit")
+			clear
 			exit
 			;;
 		*)
