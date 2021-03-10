@@ -127,10 +127,11 @@ run_twist_python () {
 # Download URL with concurrent threading, always continue download
 download_feature () {
 	stty -echo # Disable input
-	echo "Downloading $1"
 	folder="$(head -n 2 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
-
+	folder=${folder##*/} # Strip the path to get folder name
 	if [[ ! -f "$folder/$1.mp4" ]]; then
+		clear
+		echo -e "Downloading $1\nPlease take your time."
 		aria2c -i "$feature_path/$1.txt" \
 			--quiet \
 			--file-allocation=none \
@@ -139,9 +140,8 @@ download_feature () {
 			--max-tries=3 \
 			--max-concurrent-downloads=10
 		clear
-		sleep 1m
 		merge_ts "$1" "$folder"
-		clear
+		merge_vtt "$1" "$folder"
 	fi
 	stty echo # Re-enable input
 }
@@ -150,7 +150,19 @@ download_feature () {
 merge_ts () {
 	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2/$1.ts"
 	ffmpeg -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
-	echo "$2/"*.ts
+	rm "$2/"*.ts "$2/"*.aria2
+	clear
+}
+
+# Convert vtt to srt subtitle
+merge_vtt () {
+	for file in $(find "$feature_path" -name "$1*.vtt"); do
+		name=${file##*/} # Get the filename and its extension
+		name=${name%.vtt} # Strip the extention
+		ffmpeg -y -i "$file" "$directory/$2/$name.srt"
+		rm "$file"
+		clear
+	done
 }
 
 # Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
@@ -228,7 +240,7 @@ controller_feature () {
 					break 2
 				else
 					download_feature "$_feature"
-					read -p "Your movie has downloaded and saved in $folder."
+					read -p "Your movie has downloaded and saved in \"$folder\"."
 					break 2
 				fi
 			fi

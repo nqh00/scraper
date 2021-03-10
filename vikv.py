@@ -1,5 +1,6 @@
 import sys
 import os
+import codecs
 import string
 
 from requests import get
@@ -9,6 +10,7 @@ from string import ascii_letters
 from base64 import b64encode
 from unicodedata import normalize
 from platform import system
+from json import loads
 
 HDV_USER = 'rdMbGniOGTu6pCLlNaTbozthPskWaILGURY831OUKtm9UmTgXCFBc5n_TkqOExm2' # User cookies, unimportant
 abs_dirname = os.path.dirname(os.path.abspath(__file__))
@@ -39,20 +41,52 @@ def m3u8_request(keyword):
 	found = False
 	for imdb in imdb_list:
 		if check_database(imdb['id']):
+			found = True
 			bash_call("%s - %s" % (imdb['name'], imdb['year']))
 			response = get('https://hls.hdv.fun/imdb/%s' % (imdb['id']))
-			regex = findall(r'"name": "([a-zA-Z0-9]{11})", "quality": "([a-zA-Z]{0,})", "res": ([0-9]{,4})', response.text)
-			m3u8(	clean_filename(imdb['name']),
-					clean_moviename(
-						clean_filename(imdb['name']),
-						imdb['year'],
-						regex[0][1],
-						regex[0][2]
-						),
-					'https://hls.hdv.fun/m3u8/%s.m3u8?u=%s' % (regex[0][0], query_parameter()
-					)
-				)
-			found = True
+			regex = findall(r'var hd=\[{"dislike": [0-9]{,3}, "fid": ([0-9]{0,})(?:.+?)"name": "([a-zA-Z0-9]{11})", "quality": "([a-zA-Z]{0,})", "res": ([0-9]{,4})', response.text)
+			foldername = clean_filename(imdb['name'])
+			moviename = clean_moviename(
+				foldername,
+				imdb['year'],
+				regex[0][2],
+				regex[0][3]
+			)
+			m3u8(foldername, moviename, 'https://hls.hdv.fun/m3u8/%s.m3u8?u=%s' % (regex[0][1], query_parameter()))
+			sub_regex = findall(r'var sub=[^\n]*', response.text)
+			sub = loads(sub_regex[0][8:])
+			subtitle = {}
+			for key, value in sub.items():
+				if key == regex[0][0]:
+					for lang, uid in value.items():
+						if lang == "english":
+							for element in uid:
+								add_subtitle(subtitle, "eng", element[1])
+						elif lang == "vietnamese":
+							for element in uid:
+								add_subtitle(subtitle, "vie", element[1])
+
+			# Remove duplicates
+			try:
+				subtitle_eng = list(dict.fromkeys(subtitle['eng']))
+				subtitle_vie = list(dict.fromkeys(subtitle['vie']))
+			except KeyError:
+				pass
+
+			# Download first 10 english webvtt subtitles
+			count = 0
+			for element in subtitle_eng[:10]:
+				if count == 0:
+					vtt(moviename, element)
+				else:
+					vtt('%s.%s' % (moviename, count), element)
+				count = count + 1
+
+			# Download first 10 vietnamese webvtt subtitles
+			count = 0
+			for element in subtitle_vie[:10]:
+				vtt('%s.vie.%s' % (moviename, count), element)
+				count = count + 1
 	if not found:
 		print('There is no movie matching your "%s" in our database.' % (keyword))
 		sys.exit(2) # Return value for bash
@@ -67,6 +101,19 @@ def m3u8(foldername, filename, url):
 			txt.write('%s\n dir=%s/%s\n out=%s.ts\n' % (line, abs_dirname, foldername, count))
 			count = count + 1
 	txt.close()
+
+# This method add multiple value into key
+def add_subtitle(subtitle_dict, lang, uid):
+	if lang not in subtitle_dict:
+		subtitle_dict[lang] = list()
+	subtitle_dict[lang].append(uid)
+
+# This method decode the webvtt then write to local file 
+def vtt(name, uid):
+	response = get('https://sub1.hdv.fun/vtt1/%s.vtt' % (uid))
+	webvtt = codecs.open('%s/.temp/.feature/%s.vtt' % (abs_dirname, name), 'w', 'utf-8')
+	webvtt.write(response.text.encode("iso-8859-1").decode("utf8"))
+	webvtt.close()
 
 # This method check if the database has the movie
 def check_database(imdb):
