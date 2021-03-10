@@ -44,7 +44,7 @@ def m3u8_request(keyword):
 			found = True
 			bash_call("%s - %s" % (imdb['name'], imdb['year']))
 			response = get('https://hls.hdv.fun/imdb/%s' % (imdb['id']))
-			regex = findall(r'var hd=\[{"dislike": [0-9]{,3}, "fid": ([0-9]{0,})(?:.+?)"name": "([a-zA-Z0-9]{11})", "quality": "([a-zA-Z]{0,})", "res": ([0-9]{,4})', response.text)
+			regex = findall(r'var [h.?s]d=\[{"dislike": [0-9]{0,3}, "fid": ([0-9]{0,10})(?:.+?)"name": "([a-zA-Z0-9]{0,15})", "quality": "([a-zA-Z]{0,10})", "res": ([0-9]{0,4})', response.text)
 			foldername = clean_filename(imdb['name'])
 			moviename = clean_moviename(
 				foldername,
@@ -73,20 +73,23 @@ def m3u8_request(keyword):
 			except KeyError:
 				pass
 
-			# Download first 10 english webvtt subtitles
-			count = 0
-			for element in subtitle_eng[:10]:
-				if count == 0:
-					vtt(moviename, element)
-				else:
-					vtt('%s.%s' % (moviename, count), element)
-				count = count + 1
+			try:
+				# Download first 10 english webvtt subtitles
+				eng = ""
+				for element in subtitle_eng[:10]:
+					if eng == None:
+						vtt(moviename, element)
+					else:
+						vtt('%s%s' % (moviename, eng), element)
+					eng += ".ENG"
 
-			# Download first 10 vietnamese webvtt subtitles
-			count = 0
-			for element in subtitle_vie[:10]:
-				vtt('%s.vie.%s' % (moviename, count), element)
-				count = count + 1
+				# Download first 10 vietnamese webvtt subtitles
+				vie = "VIE"
+				for element in subtitle_vie[:10]:
+					vtt('%s.%s' % (moviename, vie), element)
+					vie += ".VIE"
+			except UnboundLocalError:
+				pass
 	if not found:
 		print('There is no movie matching your "%s" in our database.' % (keyword))
 		sys.exit(2) # Return value for bash
