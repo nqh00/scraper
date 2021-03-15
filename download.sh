@@ -70,7 +70,7 @@ check_directory () {
 			mkdir "$anime_path"
 		fi
 		if [[ ! -d  "$feature_path" ]]; then
-			mkdir "$feature_path" 
+			mkdir "$feature_path"
 		fi
 	elif [[ "$machine" == "Windows" ]]; then
 		if [[ ! -d "$directory\.temp" ]]; then
@@ -98,7 +98,6 @@ run_vikv_python () {
 	if [[ ! -z "$feature" ]]; then # Null input check
 		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
 	fi
-	echo
 	stty echo # Re-enable input
 }
 
@@ -112,7 +111,6 @@ run_twist_python () {
 	if [[ ! -z "$anime" ]]; then # Null input check
 		$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
 	fi
-	echo
 	stty echo # Re-enable input
 }
 
@@ -135,7 +133,7 @@ watch_download_feature () {
 	if [[ "$2" == "watch" ]]; then
 		m3u8="$(head -n 1 $feature_path/$1.txt | cut -c 3-)"
 		clear
-		ffplay -fs "$m3u8"
+		ffplay -loglevel error -fs "$m3u8"
 	elif [[ ! -f "$folder/$1.mp4" && "$2" == "down" ]]; then
 		clear
 		echo -e "Downloading $1\nPlease take your time."
@@ -152,7 +150,7 @@ watch_download_feature () {
 # Merge all ts file with ffmpeg
 merge_ts () {
 	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2/$1.ts"
-	ffmpeg -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
+	ffmpeg -loglevel error -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
 	rm "$2/"*.ts "$2/"*.aria2
 	clear
 }
@@ -162,7 +160,7 @@ convert_vtt () {
 	for file in $(find "$feature_path" -name "$1*.vtt"); do
 		name=${file##*/} # Get the filename and its extension
 		name=${name%.vtt} # Strip the extention
-		ffmpeg -y -i "$file" "$directory/$2/$name.srt"
+		ffmpeg -loglevel error -y -i "$file" "$directory/$2/$name.srt"
 		clear
 	done
 }
@@ -204,7 +202,7 @@ watch_download_anime () {
 		fi
 	done < "$anime_path/$1.txt"
 	if [[ "$3" == "watch" ]]; then
-		ffplay -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -fs -i "$url" -headers "Referer: https://twist.moe/"
+		ffplay -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -loglevel error -fs -i "$url" -headers "Referer: https://twist.moe/"
 	elif [[ "$3" == "down" ]]; then
 		echo "Downloading $1 Episode $2"
 		download_anime "$1" "$url" "$2"
@@ -382,6 +380,7 @@ controller_anime () {
 }
 
 # Using Prompt statement
+clear
 PS3="$promt_statement"
 movies=("Feature movie" "Anime" "Exit")
 check_directory

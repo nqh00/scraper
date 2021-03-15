@@ -1,5 +1,2 @@
-aiohttp==3.7.3
 requests==2.25.0
 pycryptodomex==3.10.1
-tqdm==4.54.0
-six==1.15.0
