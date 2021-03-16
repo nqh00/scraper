@@ -105,12 +105,14 @@ def request_episode(slug, textfile):
 		print('Fails to connect to server!')
 		sys.exit(2)
 
-	txt = open(textfile, 'w')
-	for episode in cryptoEpisode:
-		if extract(episode['url']) != 0:
-			txt.write('%s %s\n'  % (episode['episode'], url))
-	bash_call(None) # Space for each season
-	txt.close()
+	if extract(cryptoEpisode[0]['url']) != 0:
+		txt = open(textfile, 'w')
+		for episode in cryptoEpisode:
+			url = extract(episode['url'])
+			if url != 0:
+				txt.write('%s %s\n'  % (episode['episode'], url))
+		bash_call(None) # Space for each season
+		txt.close()		
 
 """
 (CryptoJS decipher)[https://stackoverflow.com/a/36780727]
