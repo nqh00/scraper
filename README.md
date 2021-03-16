@@ -2,8 +2,8 @@
 ![forthebadge](https://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg)![forthebadge](http://forthebadge.com/images/badges/made-with-python.svg)
 
 ## Requirements
-
- - [**Python**](https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe)
+ - [**GIT Bash**](https://github.com/git-for-windows/git/releases/latest)
+ - [**Python**](https://www.python.org/ftp/python/3.9.2/python-3.9.2-amd64.exe)
  - [aria2c](https://github.com/aria2/aria2/releases/latest)
  - [ffmpeg](https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z)
 
