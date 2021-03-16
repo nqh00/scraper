@@ -159,6 +159,7 @@ watch_download_feature () {
 			clear
 			merge_ts "$1" "$folder"
 			convert_vtt "$1" "$folder"
+			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
 			stty echo # Re-enable input
 		else
 			read -p "Your movie has downloaded and saved in \"$folder\"."
@@ -209,6 +210,7 @@ download_anime_all () {
 		download_anime "$1" "$url" "$_ep"
 		clear
 	done < "$anime_path/$1.txt"
+	mv "$anime_path/$1.txt" "$anime_path/$1 - [downloaded].txt"
 	stty echo # Re-enable input
 }
 
@@ -242,6 +244,7 @@ controller_feature_action () {
 	clear
 	local PS3='Pick your choice: '
 	local actions=("Watch the movie" "Download the movie" "Download all subtitles" "Back to the movie list")
+	echo "$1"
 	select action in "${actions[@]}"; do
 		case $action in
 			"Watch the movie")
@@ -252,9 +255,8 @@ controller_feature_action () {
 				;;
 			"Download the movie")
 				watch_download_feature "$1" "down"
-				read -s
 				clear
-				echo "$1"
+				return
 				;;
 			"Download all subtitles")
 				convert_vtt "$1"
