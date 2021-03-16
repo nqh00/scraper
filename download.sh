@@ -249,7 +249,7 @@ controller_feature_action () {
 		case $action in
 			"Watch the movie")
 				watch_download_feature "$1" "watch"
-				read -s
+				read -s -p "Sorry you have to press enter once more :("
 				clear
 				echo "$1"
 				;;
@@ -263,7 +263,7 @@ controller_feature_action () {
 				return
 				;;
 			"Back to the movie list")
-				read -s
+				read -s -p "Sorry you have to press enter once more :("
 				clear
 				return
 				;;
@@ -285,18 +285,18 @@ controller_anime_action () {
 		case $action in
 			"Watch the episode")
 				watch_download_anime "$1" "$2" "watch"
-				read -s
+				read -s -p "Sorry you have to press enter once more :("
 				clear
 				echo "$1"
 				;;
 			"Download the episode")
 				watch_download_anime "$1" "$2" "down"
-				read -s
+				read -s -p "Sorry you have to press enter once more :("
 				clear
 				echo "$1"
 				;;
 			"Back to the anime list")
-				read -s
+				read -s -p "Sorry you have to press enter once more :("
 				clear
 				echo "$1"
 				return
@@ -354,9 +354,8 @@ controller_anime_episodes () {
 		for _choice in "${episodes[@]}"; do
 			if [[ "$_choice" == "$_ep" ]]; then
 				if [[ "$_choice" == "Back to the anime list" ]]; then
-					read -s
+					read -s -p "Sorry you have to press enter once more :("
 					clear
-					echo "$1"
 					return
 				elif [[ "$_choice" == "All of episodes" ]]; then
 					download_anime_all "$1"
