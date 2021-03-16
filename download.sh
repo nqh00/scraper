@@ -87,56 +87,48 @@ check_directory () {
 
 # Python execution
 run_vikv_python () {
-	while true; do
-		clear
-		echo "Search your feature movie:"
-		read -e feature
-		clear
-		if [[ ! -z "$feature" ]]; then # Null input check
-			stty -echo # Disable input
-			$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
-			if [[ "$feature_found" -eq "1" ]]; then
-				read -p "Please try another keyword."
-			elif [[ "$feature_found" -eq "2" ]]; then
-				read -p "We will update this movie in the future."
-			else
-				read -p "Your movie library has been updated."
-			fi
-			stty echo # Re-enable input
-			return
+	clear
+	echo "Search your feature movie:"
+	read -e feature
+	clear
+	if [[ ! -z "$feature" ]]; then # Null input check
+		stty -echo # Disable input
+		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
+		if [[ "$feature_found" -eq "1" ]]; then
+			read -p "Please try another keyword."
+		elif [[ "$feature_found" -eq "2" ]]; then
+			read -p "We will update this movie in the future."
 		else
-			read -p $'No keywords detected.\nPress something to search will you?'
-			clear
-			return
+			read -p "Your movie library has been updated."
 		fi
-	done
+		stty echo # Re-enable input
+	else
+		read -p $'No keywords detected.\nPress something to search will you?'
+	fi
+	clear
 }
 
 # Python execution
 run_twist_python () {
-	while true; do
-		clear
-		echo "Search for your anime:"
-		read -e anime
-		clear
-		if [[ ! -z "$anime" ]]; then # Null input check
-			stty -echo # Disable input
-			$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
-			if [[ "$anime_found" -eq "1" ]]; then
-				read -p "Please try another keyword."
-			elif [[ "$anime_found" -eq "2" ]]; then
-				read -p "Please try again later."
-			else
-				read -p "Your anime library has been updated."
-			fi
-			stty echo # Re-enable input
-			return
+	clear
+	echo "Search for your anime:"
+	read -e anime
+	clear
+	if [[ ! -z "$anime" ]]; then # Null input check
+		stty -echo # Disable input
+		$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
+		if [[ "$anime_found" -eq "1" ]]; then
+			read -p "Please try another keyword."
+		elif [[ "$anime_found" -eq "2" ]]; then
+			read -p "Please try again later."
 		else
-			read -p $'No keywords detected.\nPress something to search will you?'
-			clear
-			return
+			read -p "Your anime library has been updated."
 		fi
-	done
+		stty echo # Re-enable input
+	else
+		read -p $'No keywords detected.\nPress something to search will you?'
+	fi
+	clear
 }
 
 # Download URL with concurrent threading, always continue download
@@ -158,7 +150,7 @@ watch_download_feature () {
 		if [[ "$2" == "watch" ]]; then
 			m3u8="$(head -n 1 $feature_path/$1.txt | cut -c 3-)"
 			clear
-			ffplay -fs "$m3u8"
+			ffplay -loglevel error -fs "$m3u8"
 		elif [[ ! -f "$folder/$1.mp4" && "$2" == "down" ]]; then
 			stty -echo # Disable input
 			clear
@@ -171,7 +163,6 @@ watch_download_feature () {
 		else
 			read -p "Your movie has downloaded and saved in \"$folder\"."
 		fi
-		clear
 		return
 	done
 }
@@ -179,7 +170,7 @@ watch_download_feature () {
 # Merge all ts file with ffmpeg
 merge_ts () {
 	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2/$1.ts"
-	ffmpeg -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
+	ffmpeg -loglevel error -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
 	rm "$2/"*.ts "$2/"*.aria2
 	clear
 }
@@ -189,7 +180,7 @@ convert_vtt () {
 	for file in $(find "$feature_path" -name "$1*.vtt"); do
 		name=${file##*/} # Get the filename and its extension
 		name=${name%.vtt} # Strip the extention
-		ffmpeg -y -i "$file" "$directory/$2/$name.srt"
+		ffmpeg -loglevel error -y -i "$file" "$directory/$2/$name.srt"
 		clear
 	done
 }
@@ -231,7 +222,8 @@ watch_download_anime () {
 	done < "$anime_path/$1.txt"
 	while true; do
 		if [[ "$3" == "watch" ]]; then
-			ffplay -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -fs -i "$url" -headers "Referer: https://twist.moe/"
+			clear
+			ffplay -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -loglevel error -fs -i "$url" -headers "Referer: https://twist.moe/"
 		elif [[ "$3" == "down" ]]; then
 			stty -echo # Disable input
 			clear
@@ -241,7 +233,6 @@ watch_download_anime () {
 			read -p "Your episode has downloaded and saved in \"$1\"."
 			stty echo # Re-enable input
 		fi
-		clear
 		return
 	done
 }
@@ -255,9 +246,15 @@ controller_feature_action () {
 		case $action in
 			"Watch the movie")
 				watch_download_feature "$1" "watch"
+				read -s
+				clear
+				echo "$1"
 				;;
 			"Download the movie")
 				watch_download_feature "$1" "down"
+				read -s
+				clear
+				echo "$1"
 				;;
 			"Download all subtitles")
 				convert_vtt "$1"
@@ -286,9 +283,15 @@ controller_anime_action () {
 		case $action in
 			"Watch the episode")
 				watch_download_anime "$1" "$2" "watch"
+				read -s
+				clear
+				echo "$1"
 				;;
 			"Download the episode")
 				watch_download_anime "$1" "$2" "down"
+				read -s
+				clear
+				echo "$1"
 				;;
 			"Back to the anime list")
 				read -s
@@ -322,6 +325,7 @@ controller_feature () {
 			if [[ "$_choice" == "$_feature" ]]; then
 				if [[ "$_choice" == "Search for feature movie" ]]; then
 					run_vikv_python
+					return
 				elif [[ "$_choice" == "Back to the menu" ]]; then
 					return
 				else
