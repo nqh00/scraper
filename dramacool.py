@@ -1,14 +1,11 @@
 import sys
 import os
-import unicodedata
-import string
 
 from requests import get
 from lxml import html
 from json import JSONDecodeError
 from requests.exceptions import (ConnectionError, Timeout, MissingSchema)
-from platform import system
-from subprocess import check_call
+from utils import utils
 
 abs_dirname = os.path.dirname(os.path.abspath(__file__))
 headers = {'X-Requested-With': 'XMLHttpRequest'}
@@ -17,12 +14,12 @@ def dramacool(keyword, start_episode=None, end_episode=None):
 	response = get('https://www.dramacool.info/search?keyword=%s&type=movies' % (keyword.replace(' ', '+')), headers=headers)
 
 	try:
-		bash_call(response.json()[0]['name'])
+		utils.bash_call(response.json()[0]['name'])
 	except IndexError:
 		print('There is no movie matching your "%s" in our database.' % (keyword))
 		sys.exit(1) # Return value for bash
 
-	folder = '%s/.temp/.series/%s' % (abs_dirname, clean_filename(response.json()[0]['name']))
+	folder = '%s/.temp/.series/%s' % (abs_dirname, utils.clean_filename(response.json()[0]['name']))
 	if not os.path.exists(folder):
 		os.mkdir(folder)
 	if start_episode is None:
@@ -30,7 +27,7 @@ def dramacool(keyword, start_episode=None, end_episode=None):
 	while (start_episode > 0):
 		if selected_server(folder, response.json()[0]['alias'], start_episode) == 1 or start_episode == end_episode:
 			break
-		bash_call('Episode %s' % (start_episode))
+		utils.bash_call('Episode %s' % (start_episode))
 		start_episode += 1
 
 def selected_server(folder, alias, episode):
@@ -92,33 +89,6 @@ def googleapis(folder, episode, url):
 	txt.write(url)
 	txt.close()
 	return 0
-
-# This method determine system platform and execute bash script
-def bash_call(command):
-	if system() == "Linux":
-		if command is None:
-			check_call('echo', executable='/bin/bash', shell=True)
-		else:
-			check_call('echo "%s"' % (command), executable='/bin/bash', shell=True)
-	if system() == "Windows":
-		if command is None:
-			os.system('echo.')
-		else:
-			os.system('echo %s' % (command))
-
-"""
-Make sure the string is a valid file name
-https://gist.github.com/wassname/1393c4a57cfcbf03641dbc31886123b8
-"""
-def clean_filename(filename):
-	# Keep only valid ASCII characters
-	cleaned_filename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore').decode()
-
-	# Keep only valid chararacters
-	valid_filename_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-	cleaned_filename = ''.join(c for c in cleaned_filename if c in valid_filename_chars)
-
-	return cleaned_filename
 
 if __name__ == "__main__":
 	keyword = sys.argv[1]

@@ -1,8 +1,6 @@
 import sys
 import os
 import base64
-import unicodedata
-import string
 
 from requests import get
 from requests.utils import quote
@@ -10,8 +8,7 @@ from hashlib import md5
 from Cryptodome.Cipher import AES
 from json import JSONDecodeError
 from http.client import HTTPSConnection
-from platform import system
-from subprocess import check_call
+from utils import utils
 
 abs_dirname = os.path.dirname(os.path.abspath(__file__))
 KEY = b'267041df55ca2b36f2e322d05ee2c9cf'
@@ -33,8 +30,8 @@ def main(keyword):
 						title = anime['title']
 					else:
 						title = '%s - Season %s' % (anime['title'], anime['season'])
-					txt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(title))
-					bash_call(title)
+					txt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, utils.clean_filename(title))
+					utils.bash_call(title)
 					request_episode(anime['slug']['slug'], txt_title)
 			elif check_keyword(keyword, anime['title']) or check_keyword(keyword, anime['alt_title']):
 				found = True
@@ -42,8 +39,8 @@ def main(keyword):
 					alt_title = anime['alt_title']
 				else:
 					alt_title = '%s - Season %s' % (anime['alt_title'], anime['season'])
-				txt_alt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, clean_filename(alt_title))
-				bash_call(alt_title)
+				txt_alt_title = '%s/.temp/.anime/%s.txt' % (abs_dirname, utils.clean_filename(alt_title))
+				utils.bash_call(alt_title)
 				request_episode(anime['slug']['slug'], txt_alt_title)
 		if not found:
 			print('There\'s no anime matching your %s!' % (keyword))
@@ -56,7 +53,7 @@ def main(keyword):
 # This method check if keyword and title shares the similar
 def check_keyword(keyword, title):
 	keywords = keyword.lower().split(' ')
-	title = clean_filename(title.lower())
+	title = utils.clean_filename(title.lower())
 	for word in keywords:
 		if not word in title:
 			return False
@@ -79,20 +76,6 @@ def check_request(host, suffix):
 		print("CDN Streaming Service Temporarily Unavailable.")
 		sys.exit(2)
 
-"""
-Make sure the string is a valid file name
-https://gist.github.com/wassname/1393c4a57cfcbf03641dbc31886123b8
-"""
-def clean_filename(filename):
-	# Keep only valid ASCII characters
-	cleaned_filename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore').decode()
-
-	# Keep only valid chararacters
-	valid_filename_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-	cleaned_filename = ''.join(c for c in cleaned_filename if c in valid_filename_chars)
-
-	return cleaned_filename
-
 # This method sends request to retrieve episodes json
 def request_episode(slug, textfile):
 	cryptoEpisode = []
@@ -110,11 +93,11 @@ def request_episode(slug, textfile):
 		for episode in cryptoEpisode:
 			url = extract(episode['url'])
 			if url == 0:
-				bash_call('Episode %s: No links available!' % (episode['episode']))
+				utils.bash_call('Episode %s: No links available!' % (episode['episode']))
 			else:
-				bash_call('Episode %s' % (episode['episode']))
+				utils.bash_call('Episode %s' % (episode['episode']))
 				txt.write('%s %s\n'  % (episode['episode'], url))
-		bash_call(None) # Space for each season
+		utils.bash_call() # Space for each season
 		txt.close()		
 
 """
@@ -156,19 +139,6 @@ def extract(source):
 	elif check_request('air-cdn.twist.moe', suffix):
 		return 'https://air-cdn.twist.moe%s' % (suffix)
 	return 0
-
-# This method determine system platform and execute bash script
-def bash_call(command):
-	if system() == "Linux":
-		if command is None:
-			check_call('echo', executable='/bin/bash', shell=True)
-		else:
-			check_call('echo "%s"' % (command), executable='/bin/bash', shell=True)
-	if system() == "Windows":
-		if command is None:
-			os.system('echo.')
-		else:
-			os.system('echo %s' % (command))
 
 if __name__ == "__main__":
 	main(sys.argv[1])

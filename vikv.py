@@ -1,17 +1,14 @@
 import sys
 import os
 import codecs
-import string
 
 from requests import get
 from re import findall
 from random import choice
 from string import ascii_letters
 from base64 import b64encode
-from unicodedata import normalize
-from subprocess import check_call
-from platform import system
 from json import loads
+from utils import utils
 
 HDV_USER = 'rdMbGniOGTu6pCLlNaTbozthPskWaILGURY831OUKtm9UmTgXCFBc5n_TkqOExm2' # User cookies, unimportant
 abs_dirname = os.path.dirname(os.path.abspath(__file__))
@@ -46,8 +43,8 @@ def m3u8_request(keyword):
 			response = get('https://hls.hdv.fun/imdb/%s' % (imdb['id']))
 			regex = findall(r'var [h.?s]d=\[{"dislike": [0-9]{0,3}, "fid": ([0-9]{0,10})(?:.+?)"name": "([a-zA-Z0-9]{0,15})", "quality": "([a-zA-Z]{0,10})", "res": ([0-9]{0,4})', response.text)
 			m3u8_query_parameter = query_parameter(regex[0][1])
-			bash_call("%s - %s\n" % (imdb['name'], imdb['year']))
-			foldername = clean_filename(imdb['name'])
+			utils.bash_call("%s - %s\n" % (imdb['name'], imdb['year']))
+			foldername = utils.clean_filename(imdb['name'])
 			moviename = clean_moviename(
 				foldername,
 				imdb['year'],
@@ -130,20 +127,6 @@ def check_database(imdb):
 			return True;
 	return False;
 
-"""
-Make sure the string is a valid file name
-https://gist.github.com/wassname/1393c4a57cfcbf03641dbc31886123b8
-"""
-def clean_filename(filename):
-	# Keep only valid ASCII characters
-	cleaned_filename = normalize('NFKD', filename).encode('ASCII', 'ignore').decode()
-
-	# Keep only valid chararacters
-	valid_filename_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-	cleaned_filename = ''.join(c for c in cleaned_filename if c in valid_filename_chars)
-
-	return cleaned_filename
-
 # This method format the movie name with its codec properties
 def clean_moviename(moviename, year, quality, resolution):
 	moviename = moviename.replace(".", "").replace(" ", ".")
@@ -166,19 +149,6 @@ def query_parameter(name):
 	btoa = b64encode(rand.encode('ascii'))
 	# Base 64 encode reverse string
 	return "https://hls.hdv.fun/m3u8/%s.m3u8?u=%s" % (name, b64encode(btoa[::-1]).decode('ascii'))
-
-# This method determine system platform and execute bash script
-def bash_call(command):
-	if system() == "Linux":
-		if command is None:
-			check_call('echo', executable='/bin/bash', shell=True)
-		else:
-			check_call('echo "%s"' % (command), executable='/bin/bash', shell=True)
-	if system() == "Windows":
-		if command is None:
-			os.system('echo.')
-		else:
-			os.system('echo %s' % (command))
 
 if __name__ == '__main__':
 	vikv(sys.argv[1])
