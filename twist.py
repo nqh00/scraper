@@ -109,7 +109,10 @@ def request_episode(slug, textfile):
 		txt = open(textfile, 'w')
 		for episode in cryptoEpisode:
 			url = extract(episode['url'])
-			if url != 0:
+			if url == 0:
+				bash_call('Episode %s: No links available!' % (episode['episode']))
+			else:
+				bash_call('Episode %s' % (episode['episode']))
 				txt.write('%s %s\n'  % (episode['episode'], url))
 		bash_call(None) # Space for each season
 		txt.close()		

@@ -56,6 +56,7 @@ fi
 directory="`dirname $0`"
 feature_path="$directory/.temp/.feature"
 anime_path="$directory/.temp/.anime"
+series_path="$directory/.temp/.series"
 
 # Create necessary temporary directory
 check_directory () {
@@ -68,6 +69,9 @@ check_directory () {
 		fi
 		if [[ ! -d  "$feature_path" ]]; then
 			mkdir "$feature_path" 
+		fi
+		if [[ ! -d  "$series_path" ]]; then
+			mkdir "$series_path" 
 		fi
 	elif [[ "$machine" == "Windows" ]]; then
 		if [[ ! -d "$directory\.temp" ]]; then
@@ -82,6 +86,10 @@ check_directory () {
 			mkdir "$feature_path"
 			attrib +h "$feature_path"
 		fi
+		if [[ ! -d "$series_path" ]]; then
+			mkdir "$series_path"
+			attrib +h "$series_path"
+		fi
 	fi
 }
 
@@ -93,7 +101,7 @@ run_vikv_python () {
 	clear
 	if [[ ! -z "$feature" ]]; then # Null input check
 		stty -echo # Disable input
-		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit value to $found
+		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is no movie
 		if [[ "$feature_found" -eq "1" ]]; then
 			read -p "Please try another keyword."
 		elif [[ "$feature_found" -eq "2" ]]; then
@@ -123,6 +131,27 @@ run_twist_python () {
 			read -p "Please try again later."
 		else
 			read -p "Your anime library has been updated."
+		fi
+		stty echo # Re-enable input
+	else
+		read -p $'No keywords detected.\nPress something to search will you?'
+	fi
+	clear
+}
+
+# Python execution
+run_drama_python () {
+	clear
+	echo "Search for your TV series:"
+	read -e series
+	clear
+	if [[ ! -z "$series" ]]; then
+		stty -echo # Disable input
+		$python3x "$directory/dramacool.py" "$series"; series_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found
+		if [[ "$series_found" -eq "1" ]]; then
+			read -p "Please try another keyword."
+		else
+			read -p "Your TV series library has been updated."
 		fi
 		stty echo # Re-enable input
 	else
@@ -239,7 +268,30 @@ watch_download_anime () {
 	done
 }
 
-# Choose whether watch or download feature movie
+# Choose whether download or watch single tv series episode
+watch_download_series () {
+	while true; do
+		if [[ "$3" == "watch" ]]; then
+			# m3u8="$(head -n 1 $series_path/$1/$2.txt | cut -c 3-)"
+			# clear
+			# ffplay -loglevel error -fs "$m3u8"
+			echo "Watching"
+		elif [[ "$3" == "down" ]]; then
+			stty -echo # Disable input
+			clear
+			echo -e "Downloading $1\nPlease take your time."
+			# download_series "$1"
+			# clear
+			# mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
+			stty echo # Re-enable input
+		else
+			read -p "Your movie has downloaded and saved in \"$1\"."
+		fi
+		return
+	done
+}
+
+# Control watch or download feature movie
 controller_feature_action () {
 	clear
 	local PS3='Pick your choice: '
@@ -275,7 +327,7 @@ controller_feature_action () {
 	done
 }
 
-# Choose whether watch or download anime episode
+# Control watch or download anime
 controller_anime_action () {
 	clear
 	local PS3='Pick your choice: '
@@ -287,15 +339,49 @@ controller_anime_action () {
 				watch_download_anime "$1" "$2" "watch"
 				read -s -p "Sorry you have to press enter once more :("
 				clear
-				echo "$1"
+				echo "$1 - Episode $2"
 				;;
 			"Download the episode")
 				watch_download_anime "$1" "$2" "down"
 				read -s -p "Sorry you have to press enter once more :("
 				clear
-				echo "$1"
+				echo "$1 - Episode $2"
 				;;
 			"Back to the anime list")
+				read -s -p "Sorry you have to press enter once more :("
+				clear
+				echo "$1"
+				return
+				;;
+			*)
+				read -p "Option $REPLY is invalid."
+				clear
+		esac
+	done
+}
+
+
+# Choose whether watch or download TV series
+controller_series_action () {
+	clear
+	local PS3='Pick your choice: '
+	local actions=("Watch the episode" "Download the episode" "Back to the tv series list")
+	echo "$1 - $2"
+	select action in "${actions[@]}"; do
+		case $action in
+			"Watch the episode")
+				watch_download_series "$1" "$2" "watch"
+				read -s -p "Sorry you have to press enter once more :("
+				clear
+				echo "$1 - $2"
+				;;
+			"Download the episode")
+				watch_download_series "$1" "$2" "down"
+				read -s -p "Sorry you have to press enter once more :("
+				clear
+				echo "$1 - $2"
+				;;
+			"Back to the tv series list")
 				read -s -p "Sorry you have to press enter once more :("
 				clear
 				echo "$1"
@@ -400,10 +486,73 @@ controller_anime () {
 	done
 }
 
+# Managing all TV series episodes
+controller_series_episodes () {
+	clear
+	local PS3='Choose your episode: '
+	local episodes=("All of episodes")
+	for file in "$series_path/$1/"*.txt; do
+		name=${file##*/} # Get the text file name
+		name=${name%.txt} # Strip the extention
+		if [[ "$name" != "*" ]]; then # '*' means there is no txt file
+			episodes+=("$name")
+		fi
+	done
+	episodes+=("Back to the tv series list")
+	echo "$1"
+	select _ep in "${episodes[@]}"; do
+		for _choice in "${episodes[@]}"; do
+			if [[ "$_choice" == "$_ep" ]]; then
+				if [[ "$_choice" == "Back to the tv series list" ]]; then
+					read -s -p "Sorry you have to press enter once more :("
+					clear
+					return
+				elif [[ "$_choice" == "All of episodes" ]]; then
+					# download_series_all "$1"
+					read -p "Your episode has downloaded and saved in \"$1\"."
+					clear
+					return
+				else
+					controller_series_action "$1" "$_choice"
+				fi
+			fi
+		done
+	done
+}
+
+# Managing all TV series
+controller_series () {
+	clear
+	local PS3='Choose your TV series: '
+	local list=("Search for TV series")
+	for folder in "$series_path/"*; do
+		name=${folder##*/} # Get the folder name
+		if [[ "$name" != "*" ]]; then # '*' means there is no folder
+			list+=("$name")
+		fi
+	done
+
+	list+=("Back to the menu")
+	select _series in "${list[@]}"; do
+		for _choice in "${list[@]}"; do
+			if [[ "$_choice" == "$_series" ]]; then
+				if [[ "$_choice" == "Back to the menu" ]]; then
+					return
+				elif [[ "$_choice" == "Search for TV series" ]]; then
+					run_drama_python
+				else
+					controller_series_episodes "$_series"
+					clear
+				fi
+			fi
+		done
+	done
+}
+
 # Using Prompt statement
 clear
 PS3='Choose your movie type: '
-movies=("Feature movie" "Anime" "Exit")
+movies=("Feature movie" "Anime" "TV series" "Exit")
 check_directory
 while true; do
 	select mov in "${movies[@]}"; do
@@ -419,6 +568,11 @@ while true; do
 				break
 				;;
 			3)
+				controller_series
+				clear
+				break
+				;;
+			4)
 				clear
 				exit
 				;;
