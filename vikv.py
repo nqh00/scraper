@@ -31,7 +31,7 @@ def imdb_search(keyword):
 			except KeyError:
 				pass
 	except KeyError:
-		print('There is no movie matching your "%s".' % (keyword))
+		print('There is no movie matching your "%s".' % keyword)
 		sys.exit(1) # Return value for bash
 
 # This method get the m3u8 file of the best quality movie that found in database
@@ -40,7 +40,7 @@ def m3u8_request(keyword):
 	for imdb in imdb_list:
 		if check_database(imdb['id']):
 			found = True
-			response = get('https://hls.hdv.fun/imdb/%s' % (imdb['id']))
+			response = get('https://hls.hdv.fun/imdb/%s' % imdb['id'])
 			regex = findall(r'var [h.?s]d=\[{"dislike": [0-9]{0,3}, "fid": ([0-9]{0,10})(?:.+?)"name": "([a-zA-Z0-9]{0,15})", "quality": "([a-zA-Z]{0,10})", "res": ([0-9]{0,4})', response.text)
 			m3u8_query_parameter = query_parameter(regex[0][1])
 			utils.bash_call("%s - %s\n" % (imdb['name'], imdb['year']))
@@ -90,7 +90,7 @@ def m3u8_request(keyword):
 			except UnboundLocalError:
 				pass
 	if not found:
-		print('There is no movie matching your "%s" in our database.' % (keyword))
+		print('There is no movie matching your "%s" in our database.' % keyword)
 		sys.exit(2) # Return value for bash
 
 # This method extract the m3u8 file and reformat structure for aria to download
@@ -113,7 +113,7 @@ def add_subtitle(subtitle_dict, lang, uid):
 
 # This method decode the webvtt then write to local file 
 def vtt(name, uid):
-	response = get('https://sub1.hdv.fun/vtt1/%s.vtt' % (uid))
+	response = get('https://sub1.hdv.fun/vtt1/%s.vtt' % uid)
 	webvtt = codecs.open('%s/.temp/.feature/%s.vtt' % (abs_dirname, name), 'w', 'utf-8')
 	webvtt.write(response.text.encode("iso-8859-1").decode("utf8"))
 	webvtt.close()

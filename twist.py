@@ -43,7 +43,7 @@ def main(keyword):
 				utils.bash_call(alt_title)
 				request_episode(anime['slug']['slug'], txt_alt_title)
 		if not found:
-			print('There\'s no anime matching your %s!' % (keyword))
+			print('There\'s no anime matching your %s!' % keyword)
 			sys.exit(1) # Return value for bash
 	except JSONDecodeError:
 		print("Service Temporarily Unavailable.")
@@ -79,7 +79,7 @@ def check_request(host, suffix):
 # This method sends request to retrieve episodes json
 def request_episode(slug, textfile):
 	cryptoEpisode = []
-	response = get('https://api.twist.moe/api/anime/%s/sources' % (slug), headers=headers)
+	response = get('https://api.twist.moe/api/anime/%s/sources' % slug, headers=headers)
 	try:
 		data = response.json()
 		for src in data:
@@ -93,9 +93,9 @@ def request_episode(slug, textfile):
 		for episode in cryptoEpisode:
 			url = extract(episode['url'])
 			if url == 0:
-				utils.bash_call('Episode %s: No links available!' % (episode['episode']))
+				utils.bash_call('Episode %s: No links available!' % episode['episode'])
 			else:
-				utils.bash_call('Episode %s' % (episode['episode']))
+				utils.bash_call('Episode %s' % episode['episode'])
 				txt.write('%s %s\n'  % (episode['episode'], url))
 		utils.bash_call() # Space for each season
 		txt.close()		
@@ -135,9 +135,9 @@ def extract(source):
 	suffix = quote(decrypt_ed, safe='[]~@#$&()*!+=:;,.?/\'')
 
 	if check_request('cdn.twist.moe', suffix):
-		return 'https://cdn.twist.moe%s' % (suffix)
+		return 'https://cdn.twist.moe%s' % suffix
 	elif check_request('air-cdn.twist.moe', suffix):
-		return 'https://air-cdn.twist.moe%s' % (suffix)
+		return 'https://air-cdn.twist.moe%s' % suffix
 	return 0
 
 if __name__ == "__main__":
