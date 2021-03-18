@@ -18,12 +18,12 @@ if [[ "$machine" == "Linux" ]]; then
 	elif command -v python &>/dev/null; then
 		python3x="python"
 	else
-		read -p "Python 3.X is NOT installed. Try to update your repositories."
+		read -s -p "Python 3.X is NOT installed. Try to update your repositories."
 		exit 2;
 	fi
 elif [[ "$machine" == "Windows" ]]; then
 	if ! [[ -x "$(command -v py -3)" ]]; then
-		read -p $'Python 3.X is NOT installed.\nVisit https://www.python.org/downloads/ for more info.'
+		read -s -p $'Python 3.X is NOT installed.\nVisit https://www.python.org/downloads/ for more info.'
 		exit 2;
 	else
 		python3x="py -3"
@@ -33,10 +33,10 @@ fi
 # Check `aria2c` condition
 if ! [[ -x "$(command -v aria2c)" ]]; then
 	if [[ "$machine" == "Windows" ]]; then
-		read -p $'aria2c is NOT installed.\nVisit https://github.com/aria2/aria2/releases/latest for more info.'
+		read -s -p $'aria2c is NOT installed.\nVisit https://github.com/aria2/aria2/releases/latest for more info.'
 		exit 2;
 	elif [[ "$machine" == "Linux" ]]; then
-		read -p "Try this command: sudo apt-get install aria2"
+		read -s -p "Try this command: sudo apt-get install aria2"
 		exit 2;
 	fi
 fi
@@ -44,10 +44,10 @@ fi
 # Check `ffmpeg` condition
 if ! [[ -x "$(command -v ffplay)" ]]; then
 	if [[ "$machine" == "Windows" ]]; then
-		read -p $'ffmpeg is NOT installed.\nVisit https://www.gyan.dev/ffmpeg/builds for more info.'
+		read -s -p $'ffmpeg is NOT installed.\nVisit https://www.gyan.dev/ffmpeg/builds for more info.'
 		exit 2;
 	elif [[ "$machine" == "Linux" ]]; then
-		read -p "Try this command: sudo apt-get install ffmpeg"
+		read -s -p "Try this command: sudo apt-get install ffmpeg"
 		exit 2;
 	fi
 fi
@@ -68,10 +68,10 @@ check_directory () {
 			mkdir "$anime_path"
 		fi
 		if [[ ! -d  "$feature_path" ]]; then
-			mkdir "$feature_path" 
+			mkdir "$feature_path"
 		fi
 		if [[ ! -d  "$series_path" ]]; then
-			mkdir "$series_path" 
+			mkdir "$series_path"
 		fi
 	elif [[ "$machine" == "Windows" ]]; then
 		if [[ ! -d "$directory\.temp" ]]; then
@@ -103,15 +103,15 @@ run_vikv_python () {
 		stty -echo # Disable input
 		$python3x "$directory/vikv.py" "$feature"; feature_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is no movie
 		if [[ "$feature_found" -eq "1" ]]; then
-			read -p "Please try another keyword."
+			read -s -p "Please try another keyword."
 		elif [[ "$feature_found" -eq "2" ]]; then
-			read -p "We will update this movie in the future."
+			read -s -p "We will update this movie in the future."
 		else
-			read -p "Your movie library has been updated."
+			read -s -p "Your movie library has been updated."
 		fi
 		stty echo # Re-enable input
 	else
-		read -p $'No keywords detected.\nPress something to search will you?'
+		read -s -p $'No keywords detected.\nPress something to search will you?'
 	fi
 	clear
 }
@@ -126,15 +126,15 @@ run_twist_python () {
 		stty -echo # Disable input
 		$python3x "$directory/twist.py" "$anime"; anime_found=$(echo $?) # store sys.exit() value to $found, found = 1 is no found, found = 2 is Server Error
 		if [[ "$anime_found" -eq "1" ]]; then
-			read -p "Please try another keyword."
+			read -s -p "Please try another keyword."
 		elif [[ "$anime_found" -eq "2" ]]; then
-			read -p "Please try again later."
+			read -s -p "Please try again later."
 		else
-			read -p "Your anime library has been updated."
+			read -s -p "Your anime library has been updated."
 		fi
 		stty echo # Re-enable input
 	else
-		read -p $'No keywords detected.\nPress something to search will you?'
+		read -s -p $'No keywords detected.\nPress something to search will you?'
 	fi
 	clear
 }
@@ -161,8 +161,8 @@ run_drama_python () {
 }
 
 # Download URL with concurrent threading, always continue download
-download_feature () {
-	aria2c -i "$feature_path/$1.txt" \
+download_text_file () {
+	aria2c -i "$1.txt" \
 		--quiet \
 		--file-allocation=none \
 		--continue \
@@ -174,24 +174,21 @@ download_feature () {
 # Choose whether download or watch feature movie
 watch_download_feature () {
 	folder="$(head -n 3 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
-	folder=${folder##*/} # Strip the path to get folder name
 	while true; do
 		if [[ "$2" == "watch" ]]; then
 			m3u8="$(head -n 1 $feature_path/$1.txt | cut -c 3-)"
 			clear
 			ffplay -loglevel error -fs "$m3u8"
 		elif [[ ! -f "$folder/$1.mp4" && "$2" == "down" ]]; then
-			stty -echo # Disable input
 			clear
 			echo -e "Downloading $1\nPlease take your time."
-			download_feature "$1"
+			download_text_file "$feature_path/$1"
 			clear
-			merge_ts "$1" "$folder"
+			merge_ts "$1" "folder"
 			convert_vtt "$1" "$folder"
 			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
-			stty echo # Re-enable input
 		else
-			read -p "Your movie has downloaded and saved in \"$folder\"."
+			read -p "Your movie has already been downloaded and saved in \"$folder\"."
 		fi
 		return
 	done
@@ -207,10 +204,11 @@ merge_ts () {
 
 # Convert vtt to srt subtitle
 convert_vtt () {
-	for file in $(find "$feature_path" -name "$1*.vtt"); do
+	_feature="$1"
+	for file in $(find "$feature_path" -name "$_feature*.vtt"); do
 		name=${file##*/} # Get the filename and its extension
 		name=${name%.vtt} # Strip the extention
-		ffmpeg -loglevel error -y -i "$file" "$directory/$2/$name.srt"
+		ffmpeg -loglevel error -y -i "$file" "$2/$name.srt"
 		clear
 	done
 }
@@ -256,13 +254,10 @@ watch_download_anime () {
 			clear
 			ffplay -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 -loglevel error -fs -i "$url" -headers "Referer: https://twist.moe/"
 		elif [[ "$3" == "down" ]]; then
-			stty -echo # Disable input
 			clear
 			echo "Downloading $1 Episode $2"
 			download_anime "$1" "$url" "$2"
 			clear
-			read -p "Your episode has downloaded and saved in \"$1\"."
-			stty echo # Re-enable input
 		fi
 		return
 	done
@@ -272,20 +267,19 @@ watch_download_anime () {
 watch_download_series () {
 	while true; do
 		if [[ "$3" == "watch" ]]; then
-			# m3u8="$(head -n 1 $series_path/$1/$2.txt | cut -c 3-)"
-			# clear
-			# ffplay -loglevel error -fs "$m3u8"
-			echo "Watching"
-		elif [[ "$3" == "down" ]]; then
-			stty -echo # Disable input
+			_ep="$2"
+			m3u8="$(head -n 1 "$series_path/$1/$_ep.txt" | cut -c 3-)"
+			clear
+			ffplay -loglevel error -fs "$m3u8"
+		elif [[ ! -f "$directory/$1/$2.mp4" && "$3" == "down" ]]; then
 			clear
 			echo -e "Downloading $1\nPlease take your time."
-			# download_series "$1"
-			# clear
-			# mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
-			stty echo # Re-enable input
+			download_text_file "$series_path/$1/$2"
+			clear
+			merge_ts "$2" "$directory/$1"
+			mv "$series_path/$1/$2.txt" "$series_path/$1/$2 - [downloaded].txt"
 		else
-			read -p "Your movie has downloaded and saved in \"$1\"."
+			read -s -p "Your episode has already been downloaded and saved in \"$1\"."
 		fi
 		return
 	done
@@ -307,11 +301,14 @@ controller_feature_action () {
 				;;
 			"Download the movie")
 				watch_download_feature "$1" "down"
+				read -s -p "Sorry you have to press enter once more :("
 				clear
 				return
 				;;
 			"Download all subtitles")
 				convert_vtt "$1"
+				read -s -p "Sorry you have to press enter once more :("
+				clear
 				return
 				;;
 			"Back to the movie list")
@@ -320,7 +317,7 @@ controller_feature_action () {
 				return
 				;;
 			*)
-				read -p "Option $REPLY is invalid."
+				read -s -p "Option $REPLY is invalid."
 				clear
 				;;
 		esac
@@ -343,9 +340,10 @@ controller_anime_action () {
 				;;
 			"Download the episode")
 				watch_download_anime "$1" "$2" "down"
-				read -s -p "Sorry you have to press enter once more :("
+				read -s -p "Your episode has been downloaded and saved in \"$1\"."
 				clear
-				echo "$1 - Episode $2"
+				echo "$1"
+				return
 				;;
 			"Back to the anime list")
 				read -s -p "Sorry you have to press enter once more :("
@@ -354,7 +352,7 @@ controller_anime_action () {
 				return
 				;;
 			*)
-				read -p "Option $REPLY is invalid."
+				read -s -p "Option $REPLY is invalid."
 				clear
 		esac
 	done
@@ -377,9 +375,10 @@ controller_series_action () {
 				;;
 			"Download the episode")
 				watch_download_series "$1" "$2" "down"
-				read -s -p "Sorry you have to press enter once more :("
+				read -s -p "Your episode has been downloaded and saved in \"$1\"."
 				clear
-				echo "$1 - $2"
+				echo "$1"
+				return
 				;;
 			"Back to the tv series list")
 				read -s -p "Sorry you have to press enter once more :("
@@ -388,9 +387,69 @@ controller_series_action () {
 				return
 				;;
 			*)
-				read -p "Option $REPLY is invalid."
+				read -s -p "Option $REPLY is invalid."
 				clear
 		esac
+	done
+}
+
+# Managing all anime episodes
+controller_anime_episodes () {
+	clear
+	local PS3='Choose your episode: '
+	local episodes=("All of episodes")
+	while read -r __ep __url; do
+		IFS=' ' # Space delimiter
+		episodes+=("Episode $__ep")
+	done < "$anime_path/$1.txt"
+	episodes+=("Back to the anime list")
+	echo "$1"
+	select _ep in "${episodes[@]}"; do
+		for _choice in "${episodes[@]}"; do
+			if [[ "$_choice" == "$_ep" ]]; then
+				if [[ "$_choice" == "Back to the anime list" ]]; then
+					read -s -p "Sorry you have to press enter once more :("
+					clear
+					return
+				elif [[ "$_choice" == "All of episodes" ]]; then
+					download_anime_all "$1"
+					read -s -p "Every episodes have been downloaded and saved in \"$1\"."
+					clear
+					return
+				else
+					controller_anime_action "$1" "$(echo $_choice | cut -d' ' -f2)"
+				fi
+			fi
+		done
+	done
+}
+
+# Managing all TV series episodes
+controller_series_episodes () {
+	clear
+	local PS3='Choose your episode: '
+	local episodes=()
+	for file in "$series_path/$1/"*.txt; do
+		name=${file##*/} # Get the text file name
+		name=${name%.txt} # Strip the extention
+		if [[ "$name" != "*" ]]; then # '*' means there is no txt file
+			episodes+=("$name")
+		fi
+	done
+	episodes+=("Back to the tv series list")
+	echo "$1"
+	select _ep in "${episodes[@]}"; do
+		for _choice in "${episodes[@]}"; do
+			if [[ "$_choice" == "$_ep" ]]; then
+				if [[ "$_choice" == "Back to the tv series list" ]]; then
+					read -s -p "Sorry you have to press enter once more :("
+					clear
+					return
+				else
+					controller_series_action "$1" "$_choice"
+				fi
+			fi
+		done
 	done
 }
 
@@ -425,37 +484,6 @@ controller_feature () {
 	done
 }
 
-# Managing all anime episodes
-controller_anime_episodes () {
-	clear
-	local PS3='Choose your episode: '
-	local episodes=("All of episodes")
-	while read -r __ep __url; do
-		IFS=' ' # Space delimiter
-		episodes+=("Episode $__ep")
-	done < "$anime_path/$1.txt"
-	episodes+=("Back to the anime list")
-	echo "$1"
-	select _ep in "${episodes[@]}"; do
-		for _choice in "${episodes[@]}"; do
-			if [[ "$_choice" == "$_ep" ]]; then
-				if [[ "$_choice" == "Back to the anime list" ]]; then
-					read -s -p "Sorry you have to press enter once more :("
-					clear
-					return
-				elif [[ "$_choice" == "All of episodes" ]]; then
-					download_anime_all "$1"
-					read -p "Your anime has downloaded and saved in \"$1\"."
-					clear
-					return
-				else
-					controller_anime_action "$1" "$(echo $_choice | cut -d' ' -f2)"
-				fi
-			fi
-		done
-	done
-}
-
 # Managing all anime
 controller_anime () {
 	clear
@@ -477,43 +505,10 @@ controller_anime () {
 					return
 				elif [[ "$_choice" == "Search for anime" ]]; then
 					run_twist_python
+					return
 				else
 					controller_anime_episodes "$_anime"
 					clear
-				fi
-			fi
-		done
-	done
-}
-
-# Managing all TV series episodes
-controller_series_episodes () {
-	clear
-	local PS3='Choose your episode: '
-	local episodes=("All of episodes")
-	for file in "$series_path/$1/"*.txt; do
-		name=${file##*/} # Get the text file name
-		name=${name%.txt} # Strip the extention
-		if [[ "$name" != "*" ]]; then # '*' means there is no txt file
-			episodes+=("$name")
-		fi
-	done
-	episodes+=("Back to the tv series list")
-	echo "$1"
-	select _ep in "${episodes[@]}"; do
-		for _choice in "${episodes[@]}"; do
-			if [[ "$_choice" == "$_ep" ]]; then
-				if [[ "$_choice" == "Back to the tv series list" ]]; then
-					read -s -p "Sorry you have to press enter once more :("
-					clear
-					return
-				elif [[ "$_choice" == "All of episodes" ]]; then
-					# download_series_all "$1"
-					read -p "Your episode has downloaded and saved in \"$1\"."
-					clear
-					return
-				else
-					controller_series_action "$1" "$_choice"
 				fi
 			fi
 		done
@@ -540,6 +535,7 @@ controller_series () {
 					return
 				elif [[ "$_choice" == "Search for TV series" ]]; then
 					run_drama_python
+					return
 				else
 					controller_series_episodes "$_series"
 					clear
@@ -577,7 +573,7 @@ while true; do
 				exit
 				;;
 			*)
-				read -p "$REPLY is an invalid option."
+				read -s -p "$REPLY is an invalid option."
 				clear
 				;;
 		esac

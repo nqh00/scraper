@@ -86,7 +86,8 @@ def check_m3u8_request(m3u8):
 
 def googleapis(folder, episode, url):
 	txt = open('%s/Episode %s.txt' % (folder, episode), 'w+')
-	txt.write(url)
+	folder_new = '%s/%s' % (abs_dirname, folder.rsplit('/', 1)[1])
+	txt.write('# %s\n%s\n dir=%s\n out=Episode %s.mp4\n' % (url, url, folder_new, episode))
 	txt.close()
 	return 0
 
