@@ -273,7 +273,7 @@ watch_download_series () {
 			ffplay -loglevel error -fs "$m3u8"
 		elif [[ ! -f "$directory/$1/$2.mp4" && "$3" == "down" ]]; then
 			clear
-			echo -e "Downloading $1\nPlease take your time."
+			echo -e "Downloading $1 - $2\nPlease take your time."
 			download_text_file "$series_path/$1/$2"
 			clear
 			merge_ts "$2" "$directory/$1"

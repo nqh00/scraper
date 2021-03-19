@@ -10,7 +10,8 @@ from utils import utils
 abs_dirname = os.path.dirname(os.path.abspath(__file__))
 headers = {'X-Requested-With': 'XMLHttpRequest'}
 
-def dramacool(keyword, start_episode=None, end_episode=None):
+# This method search movie with keyword and then get all the movie with its episode
+def dramacool(keyword):
 	response = get('https://watchasian.cc/search?keyword=%s&type=movies' % keyword.replace(' ', '+'), headers=headers)
 	try:
 		for json in response.json():
@@ -24,14 +25,16 @@ def dramacool(keyword, start_episode=None, end_episode=None):
 		print('There is no movie matching your "%s" in our database.' % keyword)
 		sys.exit(1) # Return value for bash
 
+# This method get all episode alias from `li` tag of DOM Tree
 def episode_list(folder, url):
 	response = get('https://watchasian.cc%s' % url)
 	tree = html.fromstring(response.text)
 	episodes = tree.xpath('//ul[@class="list-episode-item-2 all-episode"]/li/a/@href')
 	for episode in reversed(episodes):
-		selected_server(folder, 'https://watchasian.cc%s' % episode, episode[:-5].rsplit('-', 1)[1])
+		selected_server(folder, 'https://watchasian.cc%s' % episode, '%02d' % int(episode[:-5].rsplit('-', 1)[1]))
 
-def selected_server(folder, url, episode):
+# This method get query parameter of an episode and then send to watchasian ajax to recieve main server link
+def selected_server(folder, url, episode):	
 	tree = html.fromstring(get(url).text)
 	server = tree.xpath('//li[@class="Standard Server selected"]/@data-video')
 	try:
@@ -48,7 +51,7 @@ def selected_server(folder, url, episode):
 	except JSONDecodeError:
 		utils.bash_call("Service Temporarily Unavailable.")
 
-
+# This method request m3u8 file, reformat the whole m3u8 file and then write to text file
 def m3u8(folder, episode, url):
 	try:
 		response = get(url, timeout=5)
@@ -65,9 +68,10 @@ def m3u8(folder, episode, url):
 		txt = open('%s/Episode %s.txt' % (folder, episode), 'w+')
 		txt.write('# %s\n' % url)
 		txt.close()
-	except MissingSchema:
+	except MissingSchema: # Exception when check_m3u8_request return nothing
 		pass
 
+# This method check for best resolution of an episode
 def check_m3u8_request(m3u8):
 	if head('%s.1080.m3u8' % m3u8[:-5]).status_code == 200:
 		return '%s.1080.m3u8' % m3u8[:-5]
@@ -77,6 +81,7 @@ def check_m3u8_request(m3u8):
 		return '%s.360.m3u8' % m3u8[:-5]
 	return
 
+# This method write googleapis url to text file
 def googleapis(folder, episode, url):
 	txt = open('%s/Episode %s.txt' % (folder, episode), 'w+')
 	folder_new = '%s/%s' % (abs_dirname, folder.rsplit('/', 1)[1])
@@ -84,11 +89,4 @@ def googleapis(folder, episode, url):
 	txt.close()
 
 if __name__ == "__main__":
-	keyword = sys.argv[1]
-	try:
-		start_episode = int(sys.argv[2])
-		end_episode = int(sys.argv[3])
-	except IndexError:
-		start_episode = None
-		end_episode = None
-	dramacool(keyword, start_episode, end_episode)
+	dramacool(sys.argv[1])
