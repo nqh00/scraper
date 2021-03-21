@@ -54,41 +54,39 @@ def m3u8_request(keyword):
 			m3u8(foldername, moviename, m3u8_query_parameter)
 			sub_regex = findall(r'var sub=[^\n]*', response.text)
 			sub = loads(sub_regex[0][8:])
-			subtitle = {}
-			for key, value in sub.items():
-				if key == regex[0][0]:
-					for lang, uid in value.items():
-						if lang == "english":
-							for element in uid:
-								add_subtitle(subtitle, "eng", element[1])
-						elif lang == "vietnamese":
-							for element in uid:
-								add_subtitle(subtitle, "vie", element[1])
+			if sub != []:
+				subtitle = {}
+				for key, value in sub.items():
+					if key == regex[0][0]:
+						for lang, uid in value.items():
+							if lang == "english":
+								for element in uid:
+									add_subtitle(subtitle, "eng", element[1])
+							elif lang == "vietnamese":
+								for element in uid:
+									add_subtitle(subtitle, "vie", element[1])
 
-			# Remove duplicates
-			try:
+				# Remove duplicates
 				subtitle_eng = list(dict.fromkeys(subtitle['eng']))
 				subtitle_vie = list(dict.fromkeys(subtitle['vie']))
-			except KeyError:
-				pass
 
-			try:
-				# Download first 10 english webvtt subtitles
-				eng = ""
-				for element in subtitle_eng[:10]:
-					if eng == None:
-						vtt(moviename, element)
-					else:
-						vtt('%s%s' % (moviename, eng), element)
-					eng += ".ENG"
+				if subtitle_eng != []:
+					# Download first 10 english webvtt subtitles
+					eng = ""
+					for element in subtitle_eng[:10]:
+						if eng == None:
+							vtt(moviename, element)
+						else:
+							vtt('%s%s' % (moviename, eng), element)
+						eng += ".ENG"
 
-				# Download first 10 vietnamese webvtt subtitles
-				vie = "VIE"
-				for element in subtitle_vie[:10]:
-					vtt('%s.%s' % (moviename, vie), element)
-					vie += ".VIE"
-			except UnboundLocalError:
-				pass
+				if subtitle_vie != []:
+					# Download first 10 vietnamese webvtt subtitles
+					vie = "VIE"
+					for element in subtitle_vie[:10]:
+						vtt('%s.%s' % (moviename, vie), element)
+						vie += ".VIE"
+
 	if not found:
 		print('There is no movie matching your "%s" in our database.' % keyword)
 		sys.exit(2) # Return value for bash
