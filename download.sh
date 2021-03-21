@@ -186,7 +186,7 @@ watch_download_feature () {
 			echo -e "Downloading $1\nPlease take your time."
 			download_text_file "$feature_path/$1"
 			clear
-			merge_ts "$1" "folder"
+			merge_ts "$1" "$folder"
 			convert_vtt "$1" "$folder"
 			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
 			read -s -p "Your movie has been downloaded and saved in \"$1\"."
@@ -298,7 +298,7 @@ watch_download_series () {
 controller_feature_action () {
 	clear
 	local PS3='Pick your choice: '
-	local actions=("Watch the movie" "Download the movie" "Delete the movie" "Download all subtitles" "Back to the movie")
+	local actions=("Watch the movie" "Download the movie" "Delete the movie" "Download all subtitles" "Back to the menu")
 	echo "$1"
 	select action in "${actions[@]}"; do
 		case $action in
@@ -320,7 +320,7 @@ controller_feature_action () {
 				convert_vtt "$1"
 				return
 				;;
-			"Back to the movie")
+			"Back to the menu")
 				return
 				;;
 			*)
@@ -335,7 +335,7 @@ controller_feature_action () {
 controller_anime_action () {
 	clear
 	local PS3='Pick your choice: '
-	local actions=("Watch the episode" "Download the episode" "Back to the episode list")
+	local actions=("Watch the episode" "Download the episode" "Back to the menu")
 	echo "$1 - Episode $2"
 	select action in "${actions[@]}"; do
 		case $action in
@@ -349,7 +349,7 @@ controller_anime_action () {
 				watch_download_anime "$1" "$2" "down"
 				return
 				;;
-			"Back to the episode list")
+			"Back to the menu")
 				return
 				;;
 			*)
@@ -364,7 +364,7 @@ controller_anime_action () {
 controller_series_action () {
 	clear
 	local PS3='Pick your choice: '
-	local actions=("Watch the episode" "Download the episode" "Delete the episode" "Back to the episode list")
+	local actions=("Watch the episode" "Download the episode" "Delete the episode" "Back to the menu")
 	echo "$1 - $2"
 	select action in "${actions[@]}"; do
 		case $action in
@@ -382,7 +382,7 @@ controller_series_action () {
 				rm "$series_path/$1/$2.txt"
 				return
 				;;
-			"Back to the episode list")
+			"Back to the menu")
 				return
 				;;
 			*)
@@ -401,12 +401,12 @@ controller_anime_episodes () {
 		IFS=' ' # Space delimiter
 		episodes+=("Episode $__ep")
 	done < "$anime_path/$1.txt"
-	episodes+=("Delete anime" "Back to the anime")
+	episodes+=("Delete anime" "Back to the menu")
 	echo "$1"
 	select _ep in "${episodes[@]}"; do
 		for _choice in "${episodes[@]}"; do
 			if [[ "$_choice" == "$_ep" ]]; then
-				if [[ "$_choice" == "Back to the anime" ]]; then
+				if [[ "$_choice" == "Back to the menu" ]]; then
 					return
 				elif [[ "$_choice" == "Delete anime" ]]; then
 					rm "$anime_path/$1.txt"
@@ -435,12 +435,12 @@ controller_series_episodes () {
 			episodes+=("$name")
 		fi
 	done
-	episodes+=("Delete the show" "Back to the series")
+	episodes+=("Delete the show" "Back to the menu")
 	echo "$1"
 	select _ep in "${episodes[@]}"; do
 		for _choice in "${episodes[@]}"; do
 			if [[ "$_choice" == "$_ep" ]]; then
-				if [[ "$_choice" == "Back to the series" ]]; then
+				if [[ "$_choice" == "Back to the menu" ]]; then
 					return
 				elif [[ "$_choice" == "Delete the show" ]]; then
 					rm "$series_path/$1/"*.txt
@@ -479,8 +479,7 @@ controller_feature () {
 					return
 				else
 					controller_feature_action "$_feature"
-					read -s -p $'\nSorry you have to press enter once more :(\nThis is a feature!'
-					clear
+					return
 				fi
 			fi
 		done
@@ -511,8 +510,7 @@ controller_anime () {
 					return
 				else
 					controller_anime_episodes "$_anime"
-					read -s -p $'\nSorry you have to press enter once more :(\nThis is a feature!'
-					clear
+					return
 				fi
 			fi
 		done
@@ -542,8 +540,7 @@ controller_series () {
 					return
 				else
 					controller_series_episodes "$_series"
-					read -s -p $'\nSorry you have to press enter once more :(\nThis is a feature!'
-					clear
+					return
 				fi
 			fi
 		done
