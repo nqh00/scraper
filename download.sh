@@ -189,8 +189,10 @@ watch_download_feature () {
 			merge_ts "$1" "folder"
 			convert_vtt "$1" "$folder"
 			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
+			read -s -p "Your movie has been downloaded and saved in \"$1\"."
 		else
 			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
+			read -s -p "Your movie has ALREADY been downloaded and saved in \"$1\"."
 		fi
 		return
 	done
@@ -262,6 +264,7 @@ watch_download_anime () {
 			echo "Downloading $1 Episode $2"
 			download_anime "$1" "$url" "$2"
 			clear
+			read -s -p "Your episode has been downloaded and saved in \"$1\"."
 		fi
 		return
 	done
@@ -282,8 +285,10 @@ watch_download_series () {
 			clear
 			merge_ts "$2" "$directory/$1"
 			mv "$series_path/$1/$2.txt" "$series_path/$1/$2 - [downloaded].txt"
+			read -s -p "Your episode has been downloaded and saved in \"$1\"."
 		else
 			mv "$series_path/$1/$2.txt" "$series_path/$1/$2 - [downloaded].txt"
+			read -s -p "Your episode has ALREADY been downloaded and saved in \"$1\"."
 		fi
 		return
 	done
@@ -293,37 +298,29 @@ watch_download_series () {
 controller_feature_action () {
 	clear
 	local PS3='Pick your choice: '
-	local actions=("Watch the movie" "Download the movie" "Delete the movie" "Download all subtitles" "Back to the movie list")
+	local actions=("Watch the movie" "Download the movie" "Delete the movie" "Download all subtitles" "Back to the movie")
 	echo "$1"
 	select action in "${actions[@]}"; do
 		case $action in
 			"Watch the movie")
 				watch_download_feature "$1" "watch"
-				read -s -p "Sorry you have to press enter once more :("
+				read -s -p "Press enter to get back to movie."
 				clear
 				echo "$1"
 				;;
 			"Download the movie")
 				watch_download_feature "$1" "down"
-				read -s -p "Sorry you have to press enter once more :("
-				clear
 				return
 				;;
 			"Delete the movie")
 				rm "$feature_path/$1.txt"
-				read -s -p "Your movie has been deleted."
-				clear
 				return
 				;;
 			"Download all subtitles")
 				convert_vtt "$1"
-				read -s -p "Sorry you have to press enter once more :("
-				clear
 				return
 				;;
-			"Back to the movie list")
-				read -s -p "Sorry you have to press enter once more :("
-				clear
+			"Back to the movie")
 				return
 				;;
 			*)
@@ -344,21 +341,15 @@ controller_anime_action () {
 		case $action in
 			"Watch the episode")
 				watch_download_anime "$1" "$2" "watch"
-				read -s -p "Sorry you have to press enter once more :("
+				read -s -p "Press enter to get back to episode."
 				clear
 				echo "$1 - Episode $2"
 				;;
 			"Download the episode")
 				watch_download_anime "$1" "$2" "down"
-				read -s -p "Your episode has been downloaded and saved in \"$1\"."
-				clear
-				echo "$1"
 				return
 				;;
 			"Back to the episode list")
-				read -s -p "Sorry you have to press enter once more :("
-				clear
-				echo "$1"
 				return
 				;;
 			*)
@@ -379,28 +370,19 @@ controller_series_action () {
 		case $action in
 			"Watch the episode")
 				watch_download_series "$1" "$2" "watch"
-				read -s -p "Sorry you have to press enter once more :("
+				read -s -p "Press enter to get back to the episode."
 				clear
 				echo "$1 - $2"
 				;;
 			"Download the episode")
 				watch_download_series "$1" "$2" "down"
-				read -s -p "Your episode has been downloaded and saved in \"$1\"."
-				clear
-				echo "$1"
 				return
 				;;
 			"Delete the episode")
 				rm "$series_path/$1/$2.txt"
-				read -s -p "Your $2 has been deleted."
-				clear
-				echo "$1"
 				return
 				;;
 			"Back to the episode list")
-				read -s -p "Sorry you have to press enter once more :("
-				clear
-				echo "$1"
 				return
 				;;
 			*)
@@ -419,24 +401,18 @@ controller_anime_episodes () {
 		IFS=' ' # Space delimiter
 		episodes+=("Episode $__ep")
 	done < "$anime_path/$1.txt"
-	episodes+=("Delete anime" "Back to the anime list")
+	episodes+=("Delete anime" "Back to the anime")
 	echo "$1"
 	select _ep in "${episodes[@]}"; do
 		for _choice in "${episodes[@]}"; do
 			if [[ "$_choice" == "$_ep" ]]; then
-				if [[ "$_choice" == "Back to the anime list" ]]; then
-					read -s -p "Sorry you have to press enter once more :("
-					clear
+				if [[ "$_choice" == "Back to the anime" ]]; then
 					return
 				elif [[ "$_choice" == "Delete anime" ]]; then
 					rm "$anime_path/$1.txt"
-					read -s -p "Your $1 has been deleted."
-					clear
 					return
 				elif [[ "$_choice" == "All of episodes" ]]; then
 					download_anime_all "$1"
-					read -s -p "Every episodes have been downloaded and saved in \"$1\"."
-					clear
 					return
 				else
 					controller_anime_action "$1" "$(echo $_choice | cut -d' ' -f2)"
@@ -459,20 +435,16 @@ controller_series_episodes () {
 			episodes+=("$name")
 		fi
 	done
-	episodes+=("Delete the show" "Back to the tv series list")
+	episodes+=("Delete the show" "Back to the series")
 	echo "$1"
 	select _ep in "${episodes[@]}"; do
 		for _choice in "${episodes[@]}"; do
 			if [[ "$_choice" == "$_ep" ]]; then
-				if [[ "$_choice" == "Back to the tv series list" ]]; then
-					read -s -p "Sorry you have to press enter once more :("
-					clear
+				if [[ "$_choice" == "Back to the series" ]]; then
 					return
 				elif [[ "$_choice" == "Delete the show" ]]; then
 					rm "$series_path/$1/"*.txt
 					rm -d "$series_path/$1"
-					read -s -p "Your $1 has been deleted."
-					clear
 					return
 				else
 					controller_series_action "$1" "$_choice"
@@ -507,7 +479,8 @@ controller_feature () {
 					return
 				else
 					controller_feature_action "$_feature"
-					return
+					read -s -p $'\nSorry you have to press enter once more :(\nThis is a feature!'
+					clear
 				fi
 			fi
 		done
@@ -538,7 +511,8 @@ controller_anime () {
 					return
 				else
 					controller_anime_episodes "$_anime"
-					return
+					read -s -p $'\nSorry you have to press enter once more :(\nThis is a feature!'
+					clear
 				fi
 			fi
 		done
@@ -568,7 +542,8 @@ controller_series () {
 					return
 				else
 					controller_series_episodes "$_series"
-					return
+					read -s -p $'\nSorry you have to press enter once more :(\nThis is a feature!'
+					clear
 				fi
 			fi
 		done
