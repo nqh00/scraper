@@ -67,9 +67,13 @@ def m3u8_request(keyword):
 									add_subtitle(subtitle, "vie", element[1])
 
 				# Remove duplicates
-				subtitle_eng = list(dict.fromkeys(subtitle['eng']))
-				subtitle_vie = list(dict.fromkeys(subtitle['vie']))
-
+				subtitle_eng = []
+				subtitle_vie = []
+				try:
+					subtitle_eng = list(dict.fromkeys(subtitle['eng']))
+					subtitle_vie = list(dict.fromkeys(subtitle['vie']))
+				except KeyError:
+					pass
 				if subtitle_eng != []:
 					# Download first 10 english webvtt subtitles
 					eng = ""
@@ -109,7 +113,7 @@ def add_subtitle(subtitle_dict, lang, uid):
 		subtitle_dict[lang] = list()
 	subtitle_dict[lang].append(uid)
 
-# This method decode the webvtt then write to local file 
+# This method decode the webvtt then write to local file
 def vtt(name, uid):
 	response = get('https://sub1.hdv.fun/vtt1/%s.vtt' % uid)
 	webvtt = codecs.open('%s/.temp/.feature/%s.vtt' % (abs_dirname, name), 'w', 'utf-8')

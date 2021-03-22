@@ -165,6 +165,7 @@ download_text_file () {
 	stty -echo # Disable input
 	aria2c -i "$1.txt" \
 		--quiet \
+		--deferred-input \
 		--file-allocation=none \
 		--continue \
 		--always-resume \
