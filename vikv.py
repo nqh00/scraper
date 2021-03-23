@@ -54,7 +54,9 @@ def m3u8_request(keyword):
 			m3u8(foldername, moviename, m3u8_query_parameter)
 			sub_regex = findall(r'var sub=[^\n]*', response.text)
 			sub = loads(sub_regex[0][8:])
-			if sub != []:
+			if not sub:
+				utils.bash_call("There are no subtitles available.")
+			else:
 				subtitle = {}
 				for key, value in sub.items():
 					if key == regex[0][0]:
@@ -74,7 +76,9 @@ def m3u8_request(keyword):
 					subtitle_vie = list(dict.fromkeys(subtitle['vie']))
 				except KeyError:
 					pass
-				if subtitle_eng != []:
+				if not subtitle_eng:
+					utils.bash_call("There are no english subtitles available.")
+				else:
 					# Download first 10 english webvtt subtitles
 					eng = ""
 					for element in subtitle_eng[:10]:
@@ -84,12 +88,15 @@ def m3u8_request(keyword):
 							vtt('%s%s' % (moviename, eng), element)
 						eng += ".ENG"
 
-				if subtitle_vie != []:
+				if not subtitle_vie:
+					utils.bash_call("There are no vietnamese subtitles available.")
+				else:
 					# Download first 10 vietnamese webvtt subtitles
 					vie = "VIE"
 					for element in subtitle_vie[:10]:
 						vtt('%s.%s' % (moviename, vie), element)
 						vie += ".VIE"
+			utils.bash_call() # Space for each movie
 
 	if not found:
 		print('There is no movie matching your "%s" in our database.' % keyword)

@@ -176,46 +176,48 @@ download_text_file () {
 
 # Choose whether download or watch feature movie
 watch_download_feature () {
-	folder="$(head -n 3 $feature_path/$1.txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
 	while true; do
-		if [[ "$2" == "watch" ]]; then
+		if [[ "$3" == "watch" ]]; then
 			m3u8="$(head -n 1 $feature_path/$1.txt | cut -c 3-)"
 			clear
 			ffplay -loglevel error -fs "$m3u8"
-		elif [[ ! -f "$folder/$1.mp4" && "$2" == "down" ]]; then
+		elif [[ ! -f "$2/$1.mp4" && "$3" == "down" ]]; then
 			clear
 			echo -e "Downloading $1\nPlease take your time."
 			download_text_file "$feature_path/$1"
 			clear
-			merge_ts "$1" "$folder"
-			convert_vtt "$1" "$folder"
+			ffmpeg_convert "$1" "$2" "ts"
+			ffmpeg_convert "$1" "$2" "vtt"
 			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
-			read -s -p "Your movie has been downloaded and saved in \"$1\"."
+			read -s -p "Your movie has been downloaded and saved in \"$2\"."
 		else
 			mv "$feature_path/$1.txt" "$feature_path/$1 - [downloaded].txt"
-			read -s -p "Your movie has ALREADY been downloaded and saved in \"$1\"."
+			read -s -p "Your movie has ALREADY been downloaded and saved in \"$2\"."
 		fi
 		return
 	done
 }
 
-# Merge all ts file with ffmpeg
-merge_ts () {
-	ls -v "$2/"*.ts | xargs -d '\n' cat > "$2/$1.ts"
-	ffmpeg -loglevel error -y -i "$2/$1.ts" -vcodec copy -acodec copy "$2/$1.mp4"
-	rm "$2/"*.ts "$2/"*.aria2
-	clear
-}
-
-# Convert vtt to srt subtitle
-convert_vtt () {
-	_feature="$1"
-	for file in $(find "$feature_path" -name "$_feature*.vtt"); do
-		name=${file##*/} # Get the filename and its extension
-		name=${name%.vtt} # Strip the extention
-		ffmpeg -loglevel error -y -i "$file" "$2/$name.srt"
+# ffmpeg merge ts or convert subtitle
+ffmpeg_convert () {
+	if [[ "$3" == "ts" ]]; then
+		ls -v "$directory/$2/"*.ts | xargs -d '\n' cat > "$directory/$2/$1.ts"
+		ffmpeg -loglevel error -y -i "$directory/$2/$1.ts" -vcodec copy -acodec copy "$directory/$2/$1.mp4"
+		rm "$directory/$2/"*.ts "$directory/$2/"*.aria2
 		clear
-	done
+	elif [[ "$3" == "vtt" ]]; then
+		_feature=$(echo "$1" | cut -d' ' -f 1) # Get file name with downloaded marked
+		for file in $(find "$feature_path" -name "$_feature*.vtt"); do
+			name=${file##*/} # Get the filename and its extension
+			name=${name%.vtt} # Strip the extention
+			if [[ ! -d "$directory/$2" ]]; then
+				ffmpeg -loglevel error -y -i "$file" "$directory/$name.srt"
+			else
+				ffmpeg -loglevel error -y -i "$file" "$directory/$2/$name.srt"
+			fi
+			clear
+		done
+	fi
 }
 
 # Download URL with headers, auto rety on error, always continue download, no pre-allocated disk size
@@ -284,7 +286,7 @@ watch_download_series () {
 			echo -e "Downloading $1 - $2\nPlease take your time."
 			download_text_file "$series_path/$1/$2"
 			clear
-			merge_ts "$2" "$directory/$1"
+			ffmpeg_convert "$2" "$directory/$1" "ts"
 			mv "$series_path/$1/$2.txt" "$series_path/$1/$2 - [downloaded].txt"
 			read -s -p "Your episode has been downloaded and saved in \"$1\"."
 		else
@@ -300,17 +302,19 @@ controller_feature_action () {
 	clear
 	local PS3='Pick your choice: '
 	local actions=("Watch the movie" "Download the movie" "Delete the movie" "Download all subtitles" "Back to the menu")
-	echo "$1"
+	folder="$(head -n 3 $feature_path/"$1".txt | tail -n 1 | cut -c 6-)" # Read file and get the folder path from line 2
+	folder=${folder##*/}
+	echo "$folder"
 	select action in "${actions[@]}"; do
 		case $action in
 			"Watch the movie")
-				watch_download_feature "$1" "watch"
+				watch_download_feature "$1" "" "watch"
 				read -s -p "Press enter to get back to movie."
 				clear
-				echo "$1"
+				echo "$folder"
 				;;
 			"Download the movie")
-				watch_download_feature "$1" "down"
+				watch_download_feature "$1" "$folder" "down"
 				return
 				;;
 			"Delete the movie")
@@ -318,7 +322,7 @@ controller_feature_action () {
 				return
 				;;
 			"Download all subtitles")
-				convert_vtt "$1"
+				ffmpeg_convert "$1" "$folder" "vtt"
 				return
 				;;
 			"Back to the menu")
