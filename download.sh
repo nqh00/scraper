@@ -206,15 +206,17 @@ ffmpeg_convert () {
 		rm "$directory/$2/"*.ts "$directory/$2/"*.aria2
 		clear
 	elif [[ "$3" == "vtt" ]]; then
+		if [[ ! -d "$directory/$2" ]]; then
+			mkdir "$directory/$2"
+		fi
+		if [[ ! -d "$directory/$2/subs" ]]; then
+			mkdir "$directory/$2/subs"
+		fi
 		_feature=$(echo "$1" | cut -d' ' -f 1) # Get file name with downloaded marked
 		for file in $(find "$feature_path" -name "$_feature*.vtt"); do
 			name=${file##*/} # Get the filename and its extension
 			name=${name%.vtt} # Strip the extention
-			if [[ ! -d "$directory/$2" ]]; then
-				ffmpeg -loglevel error -y -i "$file" "$directory/$name.srt"
-			else
-				ffmpeg -loglevel error -y -i "$file" "$directory/$2/$name.srt"
-			fi
+			ffmpeg -loglevel error -y -i "$file" "$directory/$2/subs/$name.srt"
 			clear
 		done
 	fi
@@ -233,6 +235,7 @@ download_anime () {
 		--continue \
 		--always-resume \
 		--max-tries=0
+	rm "$directory/$1/"*.aria2
 	stty echo # Re-enable input
 }
 
@@ -318,7 +321,7 @@ controller_feature_action () {
 				return
 				;;
 			"Delete the movie")
-				rm "$feature_path/$1.txt"
+				rm "$feature_path/$1"*
 				return
 				;;
 			"Download all subtitles")
@@ -331,6 +334,7 @@ controller_feature_action () {
 			*)
 				read -s -p "Option $REPLY is invalid."
 				clear
+				echo "$folder"
 				;;
 		esac
 	done
@@ -360,6 +364,7 @@ controller_anime_action () {
 			*)
 				read -s -p "Option $REPLY is invalid."
 				clear
+				echo "$1 - Episode $2"
 		esac
 	done
 }
@@ -393,6 +398,7 @@ controller_series_action () {
 			*)
 				read -s -p "Option $REPLY is invalid."
 				clear
+				echo "$1 - $2"
 		esac
 	done
 }
