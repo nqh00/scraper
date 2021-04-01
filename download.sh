@@ -212,7 +212,7 @@ ffmpeg_convert () {
 		if [[ ! -d "$directory/$2/subs" ]]; then
 			mkdir "$directory/$2/subs"
 		fi
-		_feature=$(echo "$1" | cut -d' ' -f 1) # Get file name with downloaded marked
+		_feature=$(echo "$1" | cut -d' ' -f 1) # Get file name without downloaded marked
 		for file in $(find "$feature_path" -name "$_feature*.vtt"); do
 			name=${file##*/} # Get the filename and its extension
 			name=${name%.vtt} # Strip the extention

@@ -21,7 +21,7 @@ def vikv(keyword):
 
 # This method search for keyword in imdb database
 def imdb_search(keyword):
-	response = get('https://v2.sg.media-imdb.com/suggestion/%s/%s.json' % (keyword[0].lower(), keyword.replace(" ", "_")))
+	response = get('https://v2.sg.media-imdb.com/suggestion/titles/%s/%s.json' % (keyword[0].lower(), keyword.replace(" ", "_")))
 	data = response.json()
 	try:
 		for d in data['d']:
@@ -43,8 +43,8 @@ def m3u8_request(keyword):
 			response = get('https://hls.hdv.fun/imdb/%s' % imdb['id'])
 			regex = findall(r'var [h.?s]d=\[{"dislike": [0-9]{0,3}, "fid": ([0-9]{0,10})(?:.+?)"name": "([a-zA-Z0-9]{0,15})", "quality": "([a-zA-Z]{0,10})", "res": ([0-9]{0,4})', response.text)
 			m3u8_query_parameter = query_parameter(regex[0][1])
-			utils.bash_call("%s - %s" % (imdb['name'], imdb['year']))
-			foldername = utils.clean_filename(imdb['name'])
+			utils.bash_call("%s - %s" % (imdb['name'].replace("&", "and"), imdb['year']))
+			foldername = utils.clean_filename(imdb['name'].replace("&", "and"))
 			moviename = clean_moviename(
 				foldername,
 				imdb['year'],
