@@ -13,6 +13,28 @@ class fshare:
 		self.token = None
 		self.headers = {'User-Agent': 'FshareClone1-W57IYP'}
 
+# Scrape info of all fshare link
+	def info(self, keyword):
+		loop = asyncio.get_event_loop()
+		if '.txt' in keyword:
+			loop.run_until_complete(self.info_from_file(keyword[:-4]))
+		else:
+			if 'https' in keyword:
+				self.linkcode = keyword[-12:]
+			else:
+				self.linkcode = keyword
+			loop.run_until_complete(self.info_from_url(self.linkcode))
+
+# Get download link from fshare api
+	def download(self, url):
+		loop = asyncio.get_event_loop()
+		if 'https' in url:
+			loop.run_until_complete(self.download_from_url(url))
+		elif '.txt' in url:
+			loop.run_until_complete(self.download_from_file(url[:-4]))
+		else:
+			print('Invalid Fshare URL!')
+
 # Login to fshare using requests
 	def login(self):
 		payload_login = {
@@ -24,7 +46,7 @@ class fshare:
 		try:
 			data = response.json()
 			cookie = {
-				'Cookie': 'session_id=' + data['session_id']
+				'Cookie': 'session_id=%s' % data['session_id']
 			}
 			self.headers.update(cookie)
 			self.token = data['token']
@@ -33,72 +55,10 @@ class fshare:
 			try:
 				print(data['msg'])
 			except(UnboundLocalError, KeyError):
-				print('Login error!')
-
-# Scrape info of all fshare link
-	def info(self, keyword):
-		loop = asyncio.get_event_loop()
-		if '.txt' in keyword:
-			loop.run_until_complete(self.info_from_file(keyword[:-4]))
-		else:
-			if 'https' in keyword:
-				self.linkcode = keyword[-12:]
-			else:
-				self.linkcode = keyword
-			loop.run_until_complete(self.request_file(self.linkcode))
-
-# Get download link using requests
-	def download(self, url):
-		if 'https' in url:
-			payload_token = {
-				'token': self.token,
-				'url': url
-			}
-			response = request('POST', 'https://api.fshare.vn/api/session/download', headers=self.headers, data=json.dumps(payload_token))
-			try:
-				data = response.json()
-				print(data['location'])
-			except(json.JSONDecodeError, KeyError):
-				try:
-					print(data['msg'])
-				except(UnboundLocalError, KeyError):
-					print('Error getting download link!')
-		else:
-			print('')
-
-# Extract all downloads link from text file using async
-	def downloads(self, filename):
-		try:
-			loop = asyncio.get_event_loop()
-			loop.run_until_complete(self.download_from_file(filename))
-			print('Your fshare downloading link is saved at desktop/' + filename + '_dl.txt')
-		except FileNotFoundError:
-			print("There's no " + filename + '.txt in your desktop.')
-
-# Login to fshare using aiohttp
-	async def login_async(self, session):
-		payload_login = {
-			'user_email': self.email,
-			'password': self.password,
-			'app_key': 'dMnqMMZMUnN5YpvKENaEhdQQ5jxDqddt'
-		}
-		async with session.post('https://api.fshare.vn/api/user/login', headers=self.headers, data=json.dumps(payload_login)) as response:
-			try:
-				data = await response.json()
-				cookie = {
-					'Cookie': 'session_id' + data['session_id']
-				}
-				self.headers.update(cookie)
-				self.token = data['token']
-				print(data['msg'])
-			except(json.JSONDecodeError, KeyError):
-				try:
-					print(data['msg'])
-				except(UnboundLocalError, KeyError):
-					print('Login error!')
+				print('Invalid credentials!')
 
 # Extract download link using async
-	async def request_download(self, session, url):
+	async def request_download_from_url(self, session, url):
 		payload_token = {
 			'token': self.token,
 			'url': url
@@ -115,7 +75,7 @@ class fshare:
 
 # Request all downloads link from text file using async
 	async def request_download_from_file(self, session, filename, url):
-		txt = codecs.open('desktop/' + filename + '_dl.txt', 'a', 'utf-8')
+		txt = codecs.open(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop') + '\\' + filename + '_dl.txt', 'a', 'utf-8')
 		payload_token = {
 			'token': self.token,
 			'url': url
@@ -123,7 +83,7 @@ class fshare:
 		async with session.post('https://api.fshare.vn/api/session/download', headers=self.headers, data=json.dumps(payload_token)) as response:
 			try:
 				data = await response.json()
-				txt.write(data['location'])
+				txt.write(data['location'] + '\n')
 			except(json.JSONDecodeError, KeyError):
 				try:
 					print(data['msg'])
@@ -139,31 +99,33 @@ class fshare:
 
 # Asynchronize each session with each asynchronized task 
 	async def download_from_url(self, url):
+		if self.token is None:
+			self.login()
 		async with ClientSession() as session:
-			if self.token is None:
-				task_login = asyncio.ensure_future(self.login_async(session))
-				await asyncio.gather(task_login)
-			else:
-				task_download = (asyncio.ensure_future(self.request_download(session, url)))
-				await asyncio.gather(task_download)
+			task_download = asyncio.ensure_future(self.request_download_from_url(session, url))
+			await asyncio.gather(task_download)
 
 # Asynchronize each session with each asynchronized task 
 	async def download_from_file(self, filename):
 		list_of_url = []
-		with open('desktop/' + filename + '.txt') as file:
-			for line in file:
-				stripped_line = line.strip()
-				line_list = stripped_line.split()
-				list_of_url.extend(line_list)
-		tasks = []
-		sem = asyncio.Semaphore(100)
-		async with ClientSession() as session:
-			task_login = asyncio.ensure_future(self.login_async(session))
-			await asyncio.gather(task_login)
-			for url in list_of_url:
-				task = asyncio.ensure_future(self.bound_request_download(sem, session, filename, url))
-				tasks.append(task)
-			await asyncio.gather(*tasks)
+		try:
+			with open('%s\\%s.txt' % (os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop'), filename)) as file:
+				for line in file:
+					stripped_line = line.strip()
+					if 'file' in stripped_line:
+						line_list = stripped_line.split()
+						list_of_url.extend(line_list)
+			tasks = []
+			sem = asyncio.Semaphore(100)
+			if self.token is None:
+				self.login()
+			async with ClientSession() as session:
+				for url in list_of_url:
+					task = asyncio.ensure_future(self.bound_request_download(sem, session, filename, url))
+					tasks.append(task)
+				await asyncio.gather(*tasks)
+		except FileNotFoundError:
+			print("There's no " + filename + '.txt in your desktop.')
 
 # Request info link using async
 	async def request_info(self, session, filename, fcode, page=None):
@@ -205,7 +167,7 @@ class fshare:
 				print('Error code: %s' % str(response.status)) # Async sending request too fast thus fail to connect to server 
 
 # Asynchronize each session with each asynchronized task 
-	async def request_file(self, url):
+	async def info_from_url(self, url):
 		async with ClientSession() as session:
 			task = asyncio.ensure_future(self.request_info(session, url, url))
 			await asyncio.gather(task)
@@ -224,10 +186,13 @@ class fshare:
 			with open('%s\\%s.txt' % (os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop'), filename)) as file:
 				for line in file:
 					stripped_line = line.strip()
-					line_list = stripped_line[-12:].split()
+					if 'file' in stripped_line:
+						line_list = stripped_line[27:].split()
+					else:
+						line_list = stripped_line[29:].split()
 					list_of_code.extend(line_list)
 			tasks = []
-			sem = asyncio.Semaphore(100) # Set it slow to avoid failing request
+			sem = asyncio.Semaphore(20) # Set it slow to avoid failing request
 			async with ClientSession() as session:
 				for code in list_of_code:
 					task = asyncio.ensure_future(self.bound_info_from_file(sem, session, filename, code))
