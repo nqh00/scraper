@@ -1,5 +1,8 @@
 ### ~~sCrApEr~~
-![forthebadge](https://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg)![forthebadge](http://forthebadge.com/images/badges/made-with-python.svg)
+![forthebadge](https://forthebadge.com/images/badges/works-on-my-machine.svg)
+
+## Demo
+https://user-images.githubusercontent.com/76725656/209461193-a63327aa-1e8b-4318-8e7e-defd47c91c04.mp4
 
 ## Requirements
  - [**GIT Bash**](https://github.com/git-for-windows/git/releases/latest) or **CYGWIN** or **MINGW**
